@@ -1,0 +1,22 @@
+{
+  "name": "frontend-nanodegree-neighborhood-map",
+  "version": "1.0.0",
+  "description": "This is the first version of the neighborhood-map project",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/fboydc/frontend-nanodegree-neighborhood-map.git"
+  },
+  "author": "Felipe Boyd",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/fboydc/frontend-nanodegree-neighborhood-map/issues"
+  },
+  "homepage": "https://github.com/fboydc/frontend-nanodegree-neighborhood-map#readme",
+  "devDependencies": {
+    "gulp": "^3.9.1"
+  }
+}

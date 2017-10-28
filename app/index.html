@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Scan my 'hood</title>
+		<meta charset="UTF-8">
+		<meta name="description" content="Neighborhood rating, for potential home owners">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<meta name="author" content="Felipe Boyd">
+		<link rel="stylesheet" href="css/bootstrap.min.css">
+		<link rel="stylesheet" href="css/main.css">
+	</head>
+	<body>
+		<div class="container-fluid">
+			<div class="row">
+				<!-- SIDE MENU GOES HERE -->
+				<div class="col-md-4" id="side_menu">
+					<h3><b>Neighborhood</b> - <span data-bind="text: currentNeighborhood().name"></span></h3><sup><a href="">change address</a></sup>
+
+					<select class="form-control" data-bind="options: currentNeighborhood().facilities, 		optionsText: 'name', value: currentNeighborhood().currentFacility,
+					optionsCaption: 'Choose Category'"></select>
+				</div>
+				<!-- MAP GOES HERE -->
+				<div class="col-md-8" id="map_container">
+
+				</div>
+				<div>
+
+				</div>
+			</div>
+		</div>
+		<script src="js/jquery-3.2.1.min.js"></script>
+		<script src="js/knockout-3.4.2.min.js"></script>
+		<script src="js/bootstrap.min.js"></script>
+		<script src="js/main.js"></script>
+	</body>
+</html>
