@@ -10,27 +10,31 @@
 		<link rel="stylesheet" href="css/main.css">
 	</head>
 	<body>
-		<div class="container-fluid">
-			<div class="row">
-				<!-- SIDE MENU GOES HERE -->
-				<div class="col-md-4" id="side_menu">
-					<h3><b>Neighborhood</b> - <span data-bind="text: currentNeighborhood().name"></span></h3><sup><a href="">change address</a></sup>
 
-					<select class="form-control" data-bind="options: currentNeighborhood().facilities, 		optionsText: 'name', value: currentNeighborhood().currentFacility,
+		<div id="side_menu">
+			<h3><b>CURRENT LOCATION:</b></h3>
+			<p id="location-text" data-bind="text: currentLocation().addressline"></p>
+			<sup><a class="btn btn-default" data-toggle="collapse" href="#address_change">change address</a></sup>
+			<div class="collapse multi-collapse" id="address_change">
+						<div class="input-group location-data">
+							<span class="input-group-addon" id="addressline_label">Address Line</span>
+							<input type="text" class="form-control" id="addressline_input" placeholder="type in the address...">
+						</div>
+						<button class="btn btn-primary" data-bind="click: changeLocation">Go</button>
+						<span id="messages"></span>
+					</div>
+					<hr>
+					<select class="form-control" data-bind="options: currentLocation().facilityLists, optionsText: 'type', value: currentLocation().currentFacilityList,
 					optionsCaption: 'Choose Category'"></select>
 				</div>
-				<!-- MAP GOES HERE -->
-				<div class="col-md-8" id="map_container">
-
-				</div>
-				<div>
-
-				</div>
-			</div>
 		</div>
+
+		<div id="map_container"></div>
+
 		<script src="js/jquery-3.2.1.min.js"></script>
 		<script src="js/knockout-3.4.2.min.js"></script>
 		<script src="js/bootstrap.min.js"></script>
 		<script src="js/main.js"></script>
+		<script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyB-jAg9OREMefSMxX5DlzEBB3eD3oho5FI&libraries=places&callback=loadMap"></script>
 	</body>
 </html>
