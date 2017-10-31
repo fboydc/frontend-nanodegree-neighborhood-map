@@ -6,7 +6,6 @@ var locationData = {addressline: "708 N Whitford Rd, 191341, Exton, PA"};
 var Location = function(addressline){
 	this.addressline = addressline;
 	this.facilityLists = ko.observableArray([]);
-	this.currentFacilityList = ko.observable();
 	this.init();
 }
 
@@ -17,10 +16,14 @@ var FacilityList = function(type, key){
 	this.facilities = ko.observableArray([]);
 }
 
-
-var Facility = function(){
-
+var Facility = function(place, marker){
+	this.name = place.name;
+	this.location = place.geometry.location;
+	this.placeid = place.place_id;
+	this.marker = marker;
 }
+
+
 
 Location.prototype.init = function(){
 	this.facilityLists.push(new FacilityList('Hospitals', 'hospital'));
@@ -38,10 +41,9 @@ Location.prototype.init = function(){
 
 var ViewModel = function(){
 	var self = this;
-	this.location = ko.observable();
 	this.currentLocation = ko.observable();
 	this.currentLocation(new Location(locationData.addressline));
-	this.facilityMarkers = [];
+	this.currentFacilityList = ko.observableArray([]);
 	this.locationMarker = null;
 
 
@@ -56,7 +58,7 @@ var ViewModel = function(){
 
 	this.resetAddressInput = function(input){
 		 input.value = '';
-		 input.style.border = "none";
+		 //input.style.border = "gray";
 		 document.getElementById('messages').innerHTML='';
 	}
 
@@ -65,32 +67,40 @@ var ViewModel = function(){
 		this.map.setZoom(15);
 		this.currentLocation(new Location(result.formatted_address));
 		this.currentLocation().latlong = result.geometry.location;
-		vmodel.createLocationMarker(vmodel.map);	
+		vmodel.createLocationMarker(vmodel.map);
 		this.searchFacilities();
 	}
 
 	this.searchFacilities = function(){
+
+		if(this.currentFacilityList())
+			this.currentFacilityList([]);
 		this.bounds = new google.maps.LatLngBounds();
 		for(var i=0; i<this.currentLocation().facilityLists().length; i++){
-			this.currentList = this.currentLocation().facilityLists()[i];
+			var currentList = this.currentLocation().facilityLists()[i];
 			this.service.nearbySearch({
 				location: this.currentLocation().latlong,
 				radius: 4828.03,
-				type: this.currentLocation().facilityLists()[i].key
-			}, this.facilitiesCallback);
+				type: currentList.key
+			}, this.facilitiesCallback(currentList));
 
 		}
+
 
 	}
 
-	this.facilitiesCallback = function(results, status){
-		console.log(self.currentList);
-		if(status === google.maps.places.PlacesServiceStatus.OK){
-			for(var j=0; j<results.length; j++){
-				self.createFacilityMarker(results[j]);
-			}
-		}
+	this.facilitiesCallback = function(currentList){
 
+		return function(results, status){
+			if(status === google.maps.places.PlacesServiceStatus.OK){
+				for(var j=0; j<results.length; j++){
+					var facility = new Facility(results[j], self.createFacilityMarker(results[j]));
+					currentList.facilities.push(facility);
+					self.currentFacilityList.push(facility);
+				}
+				self.map.fitBounds(self.bounds);
+			}
+		};
 
 
 	}
@@ -106,7 +116,6 @@ var ViewModel = function(){
 		});
 
 
-		this.facilityMarkers.push(marker);
 
 		 if (place.geometry.viewport) {
             this.bounds.union(place.geometry.viewport);
@@ -114,16 +123,11 @@ var ViewModel = function(){
             this.bounds.extend(location);
           }
           	//THIS IS NOT EFFICIENT AT THIS LOCATION
-           this.map.fitBounds(this.bounds);
+        //this.map.fitBounds(this.bounds);
+        return marker;
 	}
 
-	this.removeFaciltyMarker = function(){
-		for(var i=0; i<this.facilityMarkers.length; i++){
-			this.facilityMarkers[i].setMap(null);
-		}
 
-		this.facilityMarkers = [];
-	}
 
 
 	this.createLocationMarker = function(map){
@@ -153,11 +157,23 @@ var ViewModel = function(){
 
 	//----------------EVENT LISTENERS ---------------------------------//
 
+	this.zoomToFacility = function(facility){
+			window.setTimeout(function(){
+				facility.marker.setAnimation(null);
+			}, 730);
+
+			facility.marker.setAnimation(google.maps.Animation.BOUNCE);
+			self.map.setCenter(facility.location);
+			self.map.setZoom(15);
+
+
+	}
+
 	this.changeLocation = function(){
 		var input = document.getElementById('addressline_input');
 		if(input.value){
 
-			this.geocoder.geocode({'address': input.value, 
+			this.geocoder.geocode({'address': input.value,
 				componentRestrictions: {country:'US'}}, function(results, status){
 				if(status === 'OK'){
 					if(results.length > 0){
@@ -173,7 +189,14 @@ var ViewModel = function(){
 			this.emptyFieldsError(input);
 		}
 
+
+
 	}
+
+
+
+
+
 
 
 }
@@ -195,8 +218,13 @@ function loadMap(){
 				vmodel.service = new google.maps.places.PlacesService(vmodel.map);
 				vmodel.createLocationMarker(vmodel.map);
 				vmodel.searchFacilities();
+
 			}
 		});
+
+		/*vmodel.currentLocation().facilityLists().forEach(function(list){
+			console.log(list.facilities);
+		});*/
 
 }
 
