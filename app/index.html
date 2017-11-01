@@ -29,10 +29,11 @@
 			</div>
 			<hr>
 			<div id="bottom">
-				<select class="form-control" data-bind="options: currentLocation().facilityLists, optionsText: 'type', value: currentLocation().currentFacilityList, optionsCaption: 'Choose Category'"></select>
-				<div class="list-group" data-bind="foreach: currentFacilityList()" id="location-list">
+				<select class="form-control" data-bind="options: currentLocation().facilityCategoryList, optionsText: 'type', value: currentFacilityList, optionsCaption: 'Choose Category'" id="categorySelect"></select>
+				<div class="list-group" data-bind="foreach: currentFacilityList().facilities" id="location-list">
 						<a href="#" class="list-group-item" data-bind="text: name, click: $parent.zoomToFacility"></a>
 				</div>
+
 			</div>
 
 

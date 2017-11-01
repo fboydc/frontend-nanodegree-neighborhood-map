@@ -5,16 +5,32 @@ var locationData = {addressline: "708 N Whitford Rd, 191341, Exton, PA"};
 
 var Location = function(addressline){
 	this.addressline = addressline;
-	this.facilityLists = ko.observableArray([]);
+	this.facilityCategoryList = [];
 	this.init();
 }
 
 
-var FacilityList = function(type, key){
+Location.prototype.init = function(){
+	this.facilityCategoryList.push(new FacilityCategory('All', ''));
+	this.facilityCategoryList.push(new FacilityCategory('Hospitals', 'hospital'));
+	this.facilityCategoryList.push(new FacilityCategory('Fitness/gym/sports', 'gym'));
+	this.facilityCategoryList.push(new FacilityCategory('Food', 'restaurant'));
+	this.facilityCategoryList.push(new FacilityCategory('Mall', 'shopping_mall'));
+	this.facilityCategoryList.push(new FacilityCategory('Schools', 'school'));
+	this.facilityCategoryList.push(new FacilityCategory('Public Transit', 'transit_station'));
+	this.facilityCategoryList.push(new FacilityCategory('Night Life', 'night_club'));
+	this.facilityCategoryList.push(new FacilityCategory('Groceries', 'convenience_store'));
+	this.facilityCategoryList.push(new FacilityCategory('Mailing Services', 'post_office'));
+}
+
+
+
+var FacilityCategory = function(type, key){
 	this.type = type;
 	this.key = key;
 	this.facilities = ko.observableArray([]);
 }
+
 
 var Facility = function(place, marker){
 	this.name = place.name;
@@ -23,29 +39,30 @@ var Facility = function(place, marker){
 	this.marker = marker;
 }
 
-
-
-Location.prototype.init = function(){
-	this.facilityLists.push(new FacilityList('Hospitals', 'hospital'));
-	this.facilityLists.push(new FacilityList('Fitness/gym/sports', 'gym'));
-	this.facilityLists.push(new FacilityList('Food', 'restaurant'));
-	this.facilityLists.push(new FacilityList('Mall', 'shopping_mall'));
-	this.facilityLists.push(new FacilityList('Schools', 'school'));
-	this.facilityLists.push(new FacilityList('Public Transit', 'transit_station'));
-	this.facilityLists.push(new FacilityList('Night Life', 'night_club'));
-	this.facilityLists.push(new FacilityList('Groceries', 'convenience_store'));
-	this.facilityLists.push(new FacilityList('Mailing Services', 'post_office'));
+Facility.prototype.removeMarker = function(){
+	this.marker.setMap(null);
 }
+
+Facility.prototype.addMarker = function(){
+	this.marker.setMap(vmodel.map);
+}
+
+
+
 
 
 
 var ViewModel = function(){
 	var self = this;
 	this.currentLocation = ko.observable();
+	this.currentFacilityList = ko.observable();
 	this.currentLocation(new Location(locationData.addressline));
-	this.currentFacilityList = ko.observableArray([]);
+	this.currentFacilityList(this.currentLocation().facilityCategoryList[0]);
 	this.locationMarker = null;
 
+	this.currentFacilityList.subscribe(function(){
+
+	});
 
 	this.emptyFieldsError = function(input){
 
@@ -67,36 +84,39 @@ var ViewModel = function(){
 		this.map.setZoom(15);
 		this.currentLocation(new Location(result.formatted_address));
 		this.currentLocation().latlong = result.geometry.location;
-		vmodel.createLocationMarker(vmodel.map);
+		this.createLocationMarker(this.map);
 		this.searchFacilities();
+
 	}
 
 	this.searchFacilities = function(){
-
 		if(this.currentFacilityList())
 			this.currentFacilityList([]);
 		this.bounds = new google.maps.LatLngBounds();
-		for(var i=0; i<this.currentLocation().facilityLists().length; i++){
-			var currentList = this.currentLocation().facilityLists()[i];
+		var allCategories = this.currentLocation().facilityCategoryList[0];
+		for(var i=1; i<this.currentLocation().facilityCategoryList.length; i++){
+			var current = this.currentLocation().facilityCategoryList[i];
 			this.service.nearbySearch({
 				location: this.currentLocation().latlong,
 				radius: 4828.03,
-				type: currentList.key
-			}, this.facilitiesCallback(currentList));
+				type: current.key
+			}, this.facilitiesCallback(current, allCategories));
 
 		}
 
 
+
+
 	}
 
-	this.facilitiesCallback = function(currentList){
+	this.facilitiesCallback = function(current, all){
 
 		return function(results, status){
 			if(status === google.maps.places.PlacesServiceStatus.OK){
 				for(var j=0; j<results.length; j++){
 					var facility = new Facility(results[j], self.createFacilityMarker(results[j]));
-					currentList.facilities.push(facility);
-					self.currentFacilityList.push(facility);
+					current.facilities.push(facility);
+					all.facilities.push(facility);
 				}
 				self.map.fitBounds(self.bounds);
 			}
@@ -189,13 +209,11 @@ var ViewModel = function(){
 			this.emptyFieldsError(input);
 		}
 
-
-
 	}
 
+	this.filterMarkers = function(){
 
-
-
+	}
 
 
 
@@ -222,9 +240,7 @@ function loadMap(){
 			}
 		});
 
-		/*vmodel.currentLocation().facilityLists().forEach(function(list){
-			console.log(list.facilities);
-		});*/
+
 
 }
 
