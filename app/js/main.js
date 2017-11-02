@@ -11,7 +11,7 @@ var Location = function(addressline){
 
 
 Location.prototype.init = function(){
-	this.facilityCategoryList.push(new FacilityCategory('All', ''));
+	this.facilityCategoryList.push(new FacilityCategory('All', 'all'));
 	this.facilityCategoryList.push(new FacilityCategory('Hospitals', 'hospital'));
 	this.facilityCategoryList.push(new FacilityCategory('Fitness/gym/sports', 'gym'));
 	this.facilityCategoryList.push(new FacilityCategory('Food', 'restaurant'));
@@ -55,13 +55,17 @@ Facility.prototype.addMarker = function(){
 var ViewModel = function(){
 	var self = this;
 	this.currentLocation = ko.observable();
+
 	this.currentFacilityList = ko.observable();
+
 	this.currentLocation(new Location(locationData.addressline));
+
 	this.currentFacilityList(this.currentLocation().facilityCategoryList[0]);
+
 	this.locationMarker = null;
 
 	this.currentFacilityList.subscribe(function(){
-
+		self.filterMarkers();
 	});
 
 	this.emptyFieldsError = function(input){
@@ -142,9 +146,19 @@ var ViewModel = function(){
           } else {
             this.bounds.extend(location);
           }
-          	//THIS IS NOT EFFICIENT AT THIS LOCATION
-        //this.map.fitBounds(this.bounds);
+
         return marker;
+	}
+
+	this.filterMarkers = function(){
+		for(var i=0; i<this.currentLocation().facilityCategoryList.length; i++){
+			var current = this.currentLocation().facilityCategoryList[i];
+			console.log('current: '+current.type);
+			console.log('currentFacilityList: '+this.currentFacilityList().type);
+			if(current.type === this.currentFacilityList.type){
+
+			}
+		}
 	}
 
 
@@ -174,8 +188,6 @@ var ViewModel = function(){
             scaledSize: new google.maps.Size(25, 25)
 		}
 	}
-
-	//----------------EVENT LISTENERS ---------------------------------//
 
 	this.zoomToFacility = function(facility){
 			window.setTimeout(function(){
@@ -211,9 +223,8 @@ var ViewModel = function(){
 
 	}
 
-	this.filterMarkers = function(){
 
-	}
+
 
 
 
