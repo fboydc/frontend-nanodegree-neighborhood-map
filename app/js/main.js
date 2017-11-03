@@ -68,6 +68,12 @@ var ViewModel = function(){
 		self.filterMarkers();
 	});
 
+	document.getElementById('categorySelect').onchange = function(){
+		//console.log('here at');
+	}
+
+
+
 	this.emptyFieldsError = function(input){
 
 		input.style.border = "1px solid red";
@@ -153,10 +159,17 @@ var ViewModel = function(){
 	this.filterMarkers = function(){
 		for(var i=0; i<this.currentLocation().facilityCategoryList.length; i++){
 			var current = this.currentLocation().facilityCategoryList[i];
-			console.log('current: '+current.type);
-			console.log('currentFacilityList: '+this.currentFacilityList().type);
-			if(current.type === this.currentFacilityList.type){
-
+			if(current.type !== this.currentFacilityList().type){
+				for(var j=0; j<current.facilities().length; j++){
+					var facility = current.facilities()[j];
+					facility.marker.setMap(null);
+				}
+			}else{
+				for(var j=0; j<current.facilities().length; j++){
+					var facility = current.facilities()[j];
+					if(!facility.marker.getMap())
+						facility.marker.setMap(this.map);
+				}
 			}
 		}
 	}
