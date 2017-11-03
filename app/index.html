@@ -16,7 +16,8 @@
 			<div id="top">
 				<h3><b>CURRENT LOCATION:</b></h3>
 				<p id="location-text" data-bind="text: currentLocation().addressline"></p>
-				<a class="btn btn-default" data-toggle="collapse" href="#address_change" id="address_change_button">change address <i>(click to show or hide)</i></a>
+				<a class="btn btn-default" data-toggle="collapse" href="#address_change" id="address_change_button">change address <i>(toggle)</i></a>
+				<button class="btn btn-primary" data-bind="click: resetZoom">reset zoom</button>
 				<div class="collapse multi-collapse" id="address_change">
 						<hr>
 						<div class="input-group location-data">
@@ -29,12 +30,14 @@
 			</div>
 			<hr>
 			<div id="bottom">
+				<button class="btn btn-primary">property zoom</button>
 				<select class="form-control" data-bind="options: currentLocation().facilityCategoryList, optionsText: 'type', value: currentFacilityList" id="categorySelect"></select>
 
 
 				<div class="list-group" data-bind="foreach: currentFacilityList().facilities" id="location-list">
 						<a href="#" class="list-group-item" data-bind="text: name, click: $parent.zoomToFacility"></a>
 				</div>
+				<div>number of matching results: <span data-bind="text: currentFacilityList().numOfFacilities()"></span></div>
 			</div>
 
 

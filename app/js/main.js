@@ -21,14 +21,19 @@ Location.prototype.init = function(){
 	this.facilityCategoryList.push(new FacilityCategory('Night Life', 'night_club'));
 	this.facilityCategoryList.push(new FacilityCategory('Groceries', 'convenience_store'));
 	this.facilityCategoryList.push(new FacilityCategory('Mailing Services', 'post_office'));
+	this.facilityCategoryList.push(new FacilityCategory('Universities', 'university'));
 }
 
 
 
 var FacilityCategory = function(type, key){
+	var self = this;
 	this.type = type;
 	this.key = key;
 	this.facilities = ko.observableArray([]);
+	this.numOfFacilities = ko.computed(function(){
+		return self.facilities().length;
+	});
 }
 
 
@@ -68,9 +73,7 @@ var ViewModel = function(){
 		self.filterMarkers();
 	});
 
-	document.getElementById('categorySelect').onchange = function(){
-		//console.log('here at');
-	}
+
 
 
 
@@ -85,7 +88,6 @@ var ViewModel = function(){
 
 	this.resetAddressInput = function(input){
 		 input.value = '';
-		 //input.style.border = "gray";
 		 document.getElementById('messages').innerHTML='';
 	}
 
@@ -159,7 +161,8 @@ var ViewModel = function(){
 	this.filterMarkers = function(){
 		for(var i=0; i<this.currentLocation().facilityCategoryList.length; i++){
 			var current = this.currentLocation().facilityCategoryList[i];
-			if(current.type !== this.currentFacilityList().type){
+
+			if(current.key !== this.currentFacilityList().key && this.currentFacilityList().key !== 'all'){
 				for(var j=0; j<current.facilities().length; j++){
 					var facility = current.facilities()[j];
 					facility.marker.setMap(null);
@@ -167,13 +170,13 @@ var ViewModel = function(){
 			}else{
 				for(var j=0; j<current.facilities().length; j++){
 					var facility = current.facilities()[j];
-					if(!facility.marker.getMap())
+					if(!facility.marker.getMap()){
 						facility.marker.setMap(this.map);
+					}
 				}
 			}
 		}
 	}
-
 
 
 
@@ -233,6 +236,14 @@ var ViewModel = function(){
 		}else{
 			this.emptyFieldsError(input);
 		}
+
+	}
+
+
+	this.resetZoom = function(){
+		this.map.setCenter(this.currentLocation().latlong);
+		this.map.setZoom(15);
+		this.map.fitBounds(this.bounds);
 
 	}
 

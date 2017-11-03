@@ -55,15 +55,21 @@ body {
 		/*position: absolute;*/
 	}
 
-	#location-text {
-		font-size: 1.2em;
-	}
+
 
 	#map_container{
 		margin: 0;
 		height: 100%;
-		width: 70%;
+		width: 100%;
 		min-height: 600px;
+	}
+
+	#location-text {
+		font-size: 1.2em;
+	}
+
+	#categorySelect {
+		margin-top: 10px;
 	}
 }
 
