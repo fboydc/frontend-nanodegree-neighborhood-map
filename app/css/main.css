@@ -40,6 +40,20 @@ body {
 	width: 100%;
 }
 
+
+
+
+#facility_info_container {
+	text-align: center;
+	
+}
+
+#info_window_container {
+	width: 350px;
+	min-height: 500px;
+}
+
+
 @media only screen and (min-width: 960px){
 	#side_menu{
 		margin: 0;

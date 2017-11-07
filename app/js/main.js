@@ -3,6 +3,7 @@ var locationData = {addressline: "708 N Whitford Rd, 191341, Exton, PA"};
 
 
 
+
 var Location = function(addressline){
 	this.addressline = addressline;
 	this.facilityCategoryList = [];
@@ -22,6 +23,8 @@ Location.prototype.init = function(){
 	this.facilityCategoryList.push(new FacilityCategory('Groceries', 'convenience_store'));
 	this.facilityCategoryList.push(new FacilityCategory('Mailing Services', 'post_office'));
 	this.facilityCategoryList.push(new FacilityCategory('Universities', 'university'));
+	this.facilityCategoryList.push(new FacilityCategory('Veterinary', 'veterinary_care'));
+	this.facilityCategoryList.push(new FacilityCategory('Pet Shops', 'pet_store'));
 }
 
 
@@ -42,7 +45,9 @@ var Facility = function(place, marker){
 	this.location = place.geometry.location;
 	this.placeid = place.place_id;
 	this.marker = marker;
+
 }
+
 
 Facility.prototype.removeMarker = function(){
 	this.marker.setMap(null);
@@ -51,6 +56,7 @@ Facility.prototype.removeMarker = function(){
 Facility.prototype.addMarker = function(){
 	this.marker.setMap(vmodel.map);
 }
+
 
 
 
@@ -147,7 +153,9 @@ var ViewModel = function(){
 			id: place.place_id
 		});
 
-
+		google.maps.event.addListener(marker, 'click', function(){
+			self.goToFacility(marker)
+		});
 
 		 if (place.geometry.viewport) {
             this.bounds.union(place.geometry.viewport);
@@ -157,6 +165,171 @@ var ViewModel = function(){
 
         return marker;
 	}
+
+
+
+
+	this.goToFacility = function(context){
+
+
+		if(context instanceof Facility)
+			context = context.marker;
+
+
+		self.map.setCenter(context.position);
+		self.map.setZoom(15);
+		context.setAnimation(google.maps.Animation.DROP);
+		//self.googleDetailsSearch(context);
+		self.createInfowindowContent(context);
+		
+	}
+
+
+	this.createInfowindowContent = function(context){
+		this.infowindow.setContent( '<div id="info_window_container">'+
+									'<ul id="info_window_header" class="nav nav-tabs">'+
+										'<li><a href="#" onclick="vmodel.getDetailsData(\''+context.id+'\');">place details</a></li>'
+										+'<li><a href="#" onclick="vmodel.getOpeningHours();">opening hours</li>'+
+										'<li><a href="#" onclick="vmodel.getFoursquareTips();">tips</a></li>'+
+										'<li><a href="#"onclick="vmodel.getFoursquarePhotos();">photos</a></li>'+
+									'</ul>'+
+									'<div id="info_window_body">'+
+										'<p>Fetching some cool stuff...</p>'+
+										'<img src="img/110.gif">'+
+									'</div>'+
+									'</div>');
+
+
+		this.getDetailsData(context.id);
+		this.infowindow.open(context.map, context);	
+
+
+	}
+
+	this.getDetailsData = function(id){
+
+		this.service.getDetails({placeId: id}, function(place, status){
+			if(status === google.maps.places.PlacesServiceStatus.OK){
+
+				self.getVenueId(place.name, place.geometry.location.lat(), place.geometry.location.lng());
+
+				var container = document.getElementById('info_window_body');
+				var content = {
+					heading: '<h4>'+place.name+'</h4>',
+					phone: place.formatted_phone_number ? "<p>Phone: "+place.formatted_phone_number+"</p>":"<p>No phone information available</p>",
+					photo: place.photos ? "<img src='"+place.photos[0].getUrl({'maxWidth':300, 'maxHeight':300})+"' width='300px' height='300px'alt='location_image'>":"<img src='img/noimage.jpg' alt='location_image'>",
+					ratings: place.reviews ? "<p>user rating: <span class='label label-info'>"+place.rating+"</label></p>":"<p>user rating: <span class='label label-info'>No reviews av.</label></p>",
+					website: place.website ? "<a href='"+place.website+"'>go to website</a>":"<span>No website available</span>"
+				};
+
+				container.innerHTML = content.heading+content.phone+content.photo+content.ratings+content.website;
+
+				self.infowindow.heading = content.heading;
+				if(place.opening_hours){
+					self.infowindow.opening_hours = place.opening_hours;
+				}
+					
+			}
+		});
+	}
+
+	this.getOpeningHours = function(){
+		var container = document.getElementById('info_window_body');
+		var content = this.infowindow.heading;
+
+		if(this.infowindow.opening_hours){
+			content +='<ul>';
+			for(var i=0; i<this.infowindow.opening_hours.weekday_text.length; i++){
+				content += '<li>'+this.infowindow.opening_hours.weekday_text[i]+'</li>';
+			}
+			content +='</ul>';
+		}else{
+			content += '<strong>No opening hours available</strong>';
+		}
+
+		container.innerHTML = content;
+
+	}
+
+	this.getVenueId = function(title, lat, long){
+		var venueIdUrl = "https://api.foursquare.com/v2/venues/search?v=20161016&ll="+
+						 lat+","+long+"&query="+title+"&intent=match&client_id=G2CO0HDKUJAJMKRVLLSD2PAZ20MVMJJWRGAKUC3M4H20NJWV&client_secret=5NVLZB2BP2VFIHB1URO1AVRVECFLHYBPIGUKE0ISXU0AXEHB";
+		$.ajax({
+			url: venueIdUrl,
+			success: function(data){
+					self.infowindow.venue = (data.response.venues.length > 0) ? data.response.venues[0].id : false;
+
+			}
+		});				 
+	}
+
+	this.getFoursquareTips = function(){
+		var container = document.getElementById('info_window_body');
+		var content = this.infowindow.heading;
+
+		if(this.infowindow.venue){
+			var venueTipsUrl = "https://api.foursquare.com/v2/venues/"+this.infowindow.venue+"/tips?v=20161016&client_id=G2CO0HDKUJAJMKRVLLSD2PAZ20MVMJJWRGAKUC3M4H20NJWV&client_secret=5NVLZB2BP2VFIHB1URO1AVRVECFLHYBPIGUKE0ISXU0AXEHB";
+
+			$.ajax({
+				url: venueTipsUrl,
+				success: function(data){
+					var tips = data.response.tips.items;
+					if(tips.length > 0){
+						for(var i=0; i<tips.length; i++){
+							content += "<div class='well'>"+tips[i].text+" -- <em>"+tips[i].user.firstName+"</em></div>";
+						}
+					}else{
+						content += "No tips found.";
+					}
+					container.innerHTML = content;
+				}
+			});
+
+		}else{
+			content += "No foursquare data available";
+			container.innerHTML = content;
+		}
+		
+	}
+
+
+	this.getFoursquarePhotos = function(){
+		var container = document.getElementById('info_window_body');
+		var content = this.infowindow.heading;
+
+		if(this.infowindow.venue){
+			var venuePhotosUrl = "https://api.foursquare.com/v2/venues/"+this.infowindow.venue+"/photos?v=20161016&client_id=G2CO0HDKUJAJMKRVLLSD2PAZ20MVMJJWRGAKUC3M4H20NJWV&client_secret=5NVLZB2BP2VFIHB1URO1AVRVECFLHYBPIGUKE0ISXU0AXEHB";
+			$.ajax({
+				url: venuePhotosUrl,
+				success: function(data){
+					var photos = data.response.photos.items;
+
+					if(photos.length > 0){
+						content += '<div id="infowindow_carousel" class="carousel slide">';
+						content += '<div class="carousel-inner">';
+						for(var i=0; i<photos.length; i++){
+							content += '<div class="item">';
+							content += 	'<img src="'+photos[i].prefix+photos[i].width+'x'+photos[i].height+photos[i].suffix+'">';
+							content += '</div>';
+						}
+						content += '</div>';
+						content += '<a class="left carousel"></a>';
+						content += '</div>';
+					}else{
+						content += "No photos found.";
+					}
+
+					container.innerHTML = content;
+				}
+			});
+
+		}else{
+			content += "No foursquare photos available";
+			container.innerHTML = content;
+		}
+	}
+
+	
 
 	this.filterMarkers = function(){
 		for(var i=0; i<this.currentLocation().facilityCategoryList.length; i++){
@@ -190,7 +363,9 @@ var ViewModel = function(){
 			position: this.currentLocation().latlong
 		});
 
+
 		this.locationMarker = marker;
+
 
 	}
 
@@ -205,17 +380,7 @@ var ViewModel = function(){
 		}
 	}
 
-	this.zoomToFacility = function(facility){
-			window.setTimeout(function(){
-				facility.marker.setAnimation(null);
-			}, 730);
 
-			facility.marker.setAnimation(google.maps.Animation.BOUNCE);
-			self.map.setCenter(facility.location);
-			self.map.setZoom(15);
-
-
-	}
 
 	this.changeLocation = function(){
 		var input = document.getElementById('addressline_input');
@@ -247,6 +412,20 @@ var ViewModel = function(){
 
 	}
 
+	this.locationZoom = function(){
+		if(this.map.getCenter() !== this.currentLocation().latlong){
+			this.map.setCenter(this.currentLocation().latlong);
+			this.map.setZoom(17)
+		}
+		
+	}
+
+
+
+
+
+
+
 
 
 
@@ -267,7 +446,7 @@ function loadMap(){
 					center: vmodel.currentLocation().latlong,
 					zoom: 15
 				});
-
+				vmodel.infowindow = new google.maps.InfoWindow();
 				vmodel.service = new google.maps.places.PlacesService(vmodel.map);
 				vmodel.createLocationMarker(vmodel.map);
 				vmodel.searchFacilities();

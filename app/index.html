@@ -30,12 +30,12 @@
 			</div>
 			<hr>
 			<div id="bottom">
-				<button class="btn btn-primary">property zoom</button>
+				<button class="btn btn-primary" data-bind="click: locationZoom">go to property</button>
 				<select class="form-control" data-bind="options: currentLocation().facilityCategoryList, optionsText: 'type', value: currentFacilityList" id="categorySelect"></select>
 
 
 				<div class="list-group" data-bind="foreach: currentFacilityList().facilities" id="location-list">
-						<a href="#" class="list-group-item" data-bind="text: name, click: $parent.zoomToFacility"></a>
+						<a href="#" class="list-group-item" data-bind="text: name, click: $parent.goToFacility"></a>
 				</div>
 				<div>number of matching results: <span data-bind="text: currentFacilityList().numOfFacilities()"></span></div>
 			</div>
@@ -44,6 +44,7 @@
 
 		</div>
 		<div id="map_container"></div>
+		<div id="modal_container"></div>
 	</div>
 
 		<script src="js/jquery-3.2.1.min.js"></script>
