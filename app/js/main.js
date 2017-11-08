@@ -366,15 +366,15 @@ var ViewModel = function(){
 							}else{
 								content += '<div class="item">';
 							}
-							content += 	'<img class="thumbnail" src="'+photos[i].prefix+/*photos[i].width+*/'300x300'/*+photos[i].height*/+photos[i].suffix+'">';
+							content += 	'<img class="thumbnail" src="'+photos[i].prefix+'300x300'+photos[i].suffix+'">';
 							content += '</div>';
 						}
 						content += '</div>';
 						content += '<a class="left carousel-control" href="#infowindow_carousel" data-slide="prev">'+
-										'<i class="fa fa-chevron-left" aria-hidden="true"></i>'+
+										'<span class="glyphicon glyphicon-chevron-left"></span>'+
 									'</a>';
 						content += '<a class="right carousel-control" href="#infowindow_carousel" data-slide="next">'+
-										'<i class="fa fa-chevron-right" aria-hidden="true"></i>'+
+										'<span class="glyphicon glyphicon-chevron-right"></span>'+
 									'</a>';
 						content += '</div>';
 						content += '</div>';
