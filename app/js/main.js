@@ -224,16 +224,18 @@ var ViewModel = function(){
 
 		this.service.getDetails({placeId: id}, function(place, status){
 			if(status === google.maps.places.PlacesServiceStatus.OK){
+				console.log(place);
 				self.showDistance(place.geometry.location);
 				self.getVenueId(place.name, place.geometry.location.lat(), place.geometry.location.lng());
 				var container = document.getElementById('info_window_body');
 				var content = {
 					heading: '<h4>'+place.name+'</h4>',
-					phone: place.formatted_phone_number ? "<p>Phone: "+place.formatted_phone_number+"</p>":"<p>No phone information available</p>",
+					phone: place.formatted_phone_number ? "<p><strong>Phone</strong>: "+place.formatted_phone_number+"</p>":"<p>No phone information available</p>",
 					photo: place.photos ? "<img src='"+place.photos[0].getUrl({'maxWidth':150, 'maxHeight':150})+"' width='150px' height='150px'alt='location_image'>":"<img src='img/noimage.jpg' alt='location_image'>",
 					address: place.formatted_address ? "<p><em>"+place.formatted_address+"</em></p>" : '<p><em>Sorry, no address available for this place</em></p>',
-					ratings: place.reviews ? "<p>user rating: <span class='label label-info'>"+place.rating+"</label></p>":"<p>user rating: <span class='label label-info'>No reviews av.</label></p>",
-					website: place.website ? "<a href='"+place.website+"'>go to website</a>":"<span>No website available</span>"
+					ratings: place.reviews ? "<p><strong>user rating</strong>: <span class='label label-info'>"+place.rating+"</label></p>":"<p>user rating: <span class='label label-info'>No reviews av.</label></p>",
+					website: place.website ? "<a href='"+place.website+"'>go to website</a>":"<span>No website available</span>",
+					open_now: place.opening_hours ? (place.opening_hours.open_now ? "<p>Open now: <span style='color: green;'>open</span></p>":"<p>Open now: <span style='color: red;'>closed</span></p>") : "<p>Open now: Data not available</p>"
 				};
 
 				container.innerHTML =   content.heading+
@@ -243,11 +245,12 @@ var ViewModel = function(){
 											'<div id="infowindow_address">'+
 												content.phone+content.ratings+
 												'<p>'+content.website+'</p>'+
-												'<p>Distance: <span id="destination_distance"></span></p>'
+												'<p><strong>Distance</strong>: <span id="destination_distance"></span></p>'+
+												content.open_now+
 											'</div>'+
 										'</div>';
 
-
+				//self.test(content.address);
 				self.infowindow.heading = content.heading;
 				if(place.opening_hours){
 					self.infowindow.opening_hours = place.opening_hours;
