@@ -80,9 +80,6 @@ var ViewModel = function(){
 	});
 
 
-
-
-
 	this.emptyFieldsError = function(input){
 
 		input.style.border = "1px solid red";
@@ -102,14 +99,19 @@ var ViewModel = function(){
 		this.map.setZoom(15);
 		this.currentLocation(new Location(result.formatted_address));
 		this.currentLocation().latlong = result.geometry.location;
+		this.currentLocation().placeid = result.place_id;
+		this.getLocationDetails();
 		this.createLocationMarker(this.map);
 		this.searchFacilities();
+
 
 	}
 
 	this.searchFacilities = function(){
 		if(this.currentFacilityList())
 			this.currentFacilityList([]);
+
+
 		this.bounds = new google.maps.LatLngBounds();
 		var allCategories = this.currentLocation().facilityCategoryList[0];
 		for(var i=1; i<this.currentLocation().facilityCategoryList.length; i++){
@@ -122,10 +124,20 @@ var ViewModel = function(){
 
 		}
 
+	}
 
-
+	this.getLocationDetails = function(){
+		console.log("id "+this.currentLocation().placeid);
+		this.service.getDetails({placeId: this.currentLocation().placeid}, function(place, status){
+			console.log(status);
+			if(status == google.maps.places.PlacesServiceStatus.OK){
+				console.log("here");
+				console.log(place);
+			}
+		});
 
 	}
+
 
 	this.facilitiesCallback = function(current, all){
 
@@ -181,18 +193,20 @@ var ViewModel = function(){
 		context.setAnimation(google.maps.Animation.DROP);
 		//self.googleDetailsSearch(context);
 		self.createInfowindowContent(context);
-		
+
 	}
 
 
 	this.createInfowindowContent = function(context){
 		this.infowindow.setContent( '<div id="info_window_container">'+
-									'<ul id="info_window_header" class="nav nav-tabs">'+
-										'<li><a href="#" onclick="vmodel.getDetailsData(\''+context.id+'\');">place details</a></li>'
-										+'<li><a href="#" onclick="vmodel.getOpeningHours();">opening hours</li>'+
-										'<li><a href="#" onclick="vmodel.getFoursquareTips();">tips</a></li>'+
-										'<li><a href="#"onclick="vmodel.getFoursquarePhotos();">photos</a></li>'+
-									'</ul>'+
+									'<nav>'+
+										'<ul id="info_window_header" class="nav nav-tabs">'+
+											'<li><a href="#" onclick="vmodel.getDetailsData(\''+context.id+'\');">details</a></li>'
+											+'<li><a href="#" onclick="vmodel.getOpeningHours();">opening hours</li>'+
+											'<li><a href="#" onclick="vmodel.getFoursquareTips();">reviews</a></li>'+
+											'<li><a href="#"onclick="vmodel.getFoursquarePhotos();">photos</a></li>'+
+										'</ul>'+
+									"</nav>"+
 									'<div id="info_window_body">'+
 										'<p>Fetching some cool stuff...</p>'+
 										'<img src="img/110.gif">'+
@@ -201,7 +215,7 @@ var ViewModel = function(){
 
 
 		this.getDetailsData(context.id);
-		this.infowindow.open(context.map, context);	
+		this.infowindow.open(context.map, context);
 
 
 	}
@@ -210,25 +224,35 @@ var ViewModel = function(){
 
 		this.service.getDetails({placeId: id}, function(place, status){
 			if(status === google.maps.places.PlacesServiceStatus.OK){
-
+				self.showDistance(place.geometry.location);
 				self.getVenueId(place.name, place.geometry.location.lat(), place.geometry.location.lng());
-
 				var container = document.getElementById('info_window_body');
 				var content = {
 					heading: '<h4>'+place.name+'</h4>',
 					phone: place.formatted_phone_number ? "<p>Phone: "+place.formatted_phone_number+"</p>":"<p>No phone information available</p>",
-					photo: place.photos ? "<img src='"+place.photos[0].getUrl({'maxWidth':300, 'maxHeight':300})+"' width='300px' height='300px'alt='location_image'>":"<img src='img/noimage.jpg' alt='location_image'>",
+					photo: place.photos ? "<img src='"+place.photos[0].getUrl({'maxWidth':150, 'maxHeight':150})+"' width='150px' height='150px'alt='location_image'>":"<img src='img/noimage.jpg' alt='location_image'>",
+					address: place.formatted_address ? "<p><em>"+place.formatted_address+"</em></p>" : '<p><em>Sorry, no address available for this place</em></p>',
 					ratings: place.reviews ? "<p>user rating: <span class='label label-info'>"+place.rating+"</label></p>":"<p>user rating: <span class='label label-info'>No reviews av.</label></p>",
 					website: place.website ? "<a href='"+place.website+"'>go to website</a>":"<span>No website available</span>"
 				};
 
-				container.innerHTML = content.heading+content.phone+content.photo+content.ratings+content.website;
+				container.innerHTML =   content.heading+
+										content.address+
+										'<div id="infowindow_card">'+
+											'<div id="infowindow_photo">'+content.photo+'</div>'+
+											'<div id="infowindow_address">'+
+												content.phone+content.ratings+
+												'<p>'+content.website+'</p>'+
+												'<p>Distance: <span id="destination_distance"></span></p>'
+											'</div>'+
+										'</div>';
+
 
 				self.infowindow.heading = content.heading;
 				if(place.opening_hours){
 					self.infowindow.opening_hours = place.opening_hours;
 				}
-					
+
 			}
 		});
 	}
@@ -238,6 +262,7 @@ var ViewModel = function(){
 		var content = this.infowindow.heading;
 
 		if(this.infowindow.opening_hours){
+			content += '<p><strong>Opening Schedule:</strong></p>'
 			content +='<ul>';
 			for(var i=0; i<this.infowindow.opening_hours.weekday_text.length; i++){
 				content += '<li>'+this.infowindow.opening_hours.weekday_text[i]+'</li>';
@@ -260,12 +285,13 @@ var ViewModel = function(){
 					self.infowindow.venue = (data.response.venues.length > 0) ? data.response.venues[0].id : false;
 
 			}
-		});				 
+		});
 	}
 
 	this.getFoursquareTips = function(){
 		var container = document.getElementById('info_window_body');
-		var content = this.infowindow.heading;
+		var content = '<p>Fetching some cool stuff...</p>'+
+										'<img src="img/110.gif">';
 
 		if(this.infowindow.venue){
 			var venueTipsUrl = "https://api.foursquare.com/v2/venues/"+this.infowindow.venue+"/tips?v=20161016&client_id=G2CO0HDKUJAJMKRVLLSD2PAZ20MVMJJWRGAKUC3M4H20NJWV&client_secret=5NVLZB2BP2VFIHB1URO1AVRVECFLHYBPIGUKE0ISXU0AXEHB";
@@ -274,22 +300,48 @@ var ViewModel = function(){
 				url: venueTipsUrl,
 				success: function(data){
 					var tips = data.response.tips.items;
+					content = self.infowindow.heading;
 					if(tips.length > 0){
+
 						for(var i=0; i<tips.length; i++){
 							content += "<div class='well'>"+tips[i].text+" -- <em>"+tips[i].user.firstName+"</em></div>";
 						}
 					}else{
-						content += "No tips found.";
+						content += "No reviews found.";
 					}
 					container.innerHTML = content;
 				}
 			});
 
 		}else{
-			content += "No foursquare data available";
+			content = self.infowindow.heading + "No foursquare data available";
 			container.innerHTML = content;
 		}
-		
+
+	}
+
+
+	this.showDistance = function(destination){
+
+		var origin = this.currentLocation().latlong;
+		var destination = [destination]
+
+		this.distanceService.getDistanceMatrix({
+				origins: [origin],
+				destinations: destination,
+				travelMode: 'DRIVING',
+				unitSystem: google.maps.UnitSystem.METRIC,
+				avoidHighways: false,
+          		avoidTolls: false
+			}, function(response, status){
+				if(status == 'OK'){
+
+					document.getElementById('destination_distance').innerHTML = response.rows[0].elements[0].distance.text;
+				}
+
+			});
+
+
 	}
 
 
@@ -305,15 +357,26 @@ var ViewModel = function(){
 					var photos = data.response.photos.items;
 
 					if(photos.length > 0){
+						content += '<div class="container" id="carousel-container">';
 						content += '<div id="infowindow_carousel" class="carousel slide">';
 						content += '<div class="carousel-inner">';
 						for(var i=0; i<photos.length; i++){
-							content += '<div class="item">';
-							content += 	'<img src="'+photos[i].prefix+photos[i].width+'x'+photos[i].height+photos[i].suffix+'">';
+							if(i === 0){
+								content += '<div class="item active">';
+							}else{
+								content += '<div class="item">';
+							}
+							content += 	'<img class="thumbnail" src="'+photos[i].prefix+/*photos[i].width+*/'300x300'/*+photos[i].height*/+photos[i].suffix+'">';
 							content += '</div>';
 						}
 						content += '</div>';
-						content += '<a class="left carousel"></a>';
+						content += '<a class="left carousel-control" href="#infowindow_carousel" data-slide="prev">'+
+										'<i class="fa fa-chevron-left" aria-hidden="true"></i>'+
+									'</a>';
+						content += '<a class="right carousel-control" href="#infowindow_carousel" data-slide="next">'+
+										'<i class="fa fa-chevron-right" aria-hidden="true"></i>'+
+									'</a>';
+						content += '</div>';
 						content += '</div>';
 					}else{
 						content += "No photos found.";
@@ -329,7 +392,7 @@ var ViewModel = function(){
 		}
 	}
 
-	
+
 
 	this.filterMarkers = function(){
 		for(var i=0; i<this.currentLocation().facilityCategoryList.length; i++){
@@ -362,6 +425,7 @@ var ViewModel = function(){
 			title: this.currentLocation().addressline,
 			position: this.currentLocation().latlong
 		});
+
 
 
 		this.locationMarker = marker;
@@ -417,16 +481,12 @@ var ViewModel = function(){
 			this.map.setCenter(this.currentLocation().latlong);
 			this.map.setZoom(17)
 		}
-		
+
 	}
 
-
-
-
-
-
-
-
+	this.getZillowData = function(address){
+		var zillowUrl = "http://www.zillow.com/webservice/GetSearchResults.htm?zws-id=X1-ZWz1g2zp84l5vv_4234r&address=10%20Dillon%20Ct,&citystatezip=EXTON,PA"
+	}
 
 
 
@@ -442,13 +502,16 @@ function loadMap(){
 		function(results, status){
 			if(status === 'OK'){
 				vmodel.currentLocation().latlong =  results[0].geometry.location;
+				vmodel.currentLocation().placeid = results[0].place_id;
 				vmodel.map = new google.maps.Map(document.getElementById('map_container'), {
 					center: vmodel.currentLocation().latlong,
 					zoom: 15
 				});
 				vmodel.infowindow = new google.maps.InfoWindow();
 				vmodel.service = new google.maps.places.PlacesService(vmodel.map);
+				vmodel.distanceService = new google.maps.DistanceMatrixService;
 				vmodel.createLocationMarker(vmodel.map);
+				vmodel.getLocationDetails();
 				vmodel.searchFacilities();
 
 			}
