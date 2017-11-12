@@ -4,25 +4,72 @@ body {
 	height: 100%;
 	width: 100%;
 	overflow-y: hidden;
+	overflow-x: hidden;
 }
 
 
 #container {
 	width: 100%;
 	height: 100%;
-	display: flex;
-	flex-wrap: nowrap;
+}
+
+#hamburger_container {
+	margin: 10px;
+
+}
+
+#hamburger {
+	cursor: pointer;
 }
 
 #addressline_input {
 	resize: none;
 }
 
-#side_menu {
-	display: none;
+#categorySelect {
+		margin-top: 10px;
+}
+
+#top_menu {
+	height: 40px;
+	background-color: white;
+	border: 1px solid gray;
+	border-radius: 3px;
+}
+g
+
+#side_menu{
+	border: 1px solid gray;
+	display:none;
+
 }
 
 
+ .error {
+	color: red;
+ }
+
+ .input {
+ 	border: 1px solid red;
+ }
+
+#mobile_menu {
+	height: 100%;
+}
+
+#side_menu {
+	/*display: none;*/
+	padding: 10px;
+}
+
+#mobile_content_list {
+	margin: 0;
+	list-style: none;
+}
+
+.mobile_menu_entry {
+	margin: 10px;
+}
 
 #location-list {
 	max-height: 300px;
@@ -39,10 +86,35 @@ body {
 	margin: 0;
 	height: 100%;
 	width: 100%;
+	position: relative;
 }
 
+/* BOOTSTRAP OVERWRITE */
 
+.navbar-header {
+  float: none;
+}
+.navbar-toggle {
+  display: block;
+}
+.navbar-collapse.collapse {
+  display: none!important;
+}
+.navbar-nav {
+  float: none!important;
+}
+.navbar-nav>li {
+  float: none;
+}
+.navbar-collapse.collapse.in{
+  display:block !important;
+}
 
+#main_menu {
+	width: 100%;
+}
+
+/* END OF BOOTSTRAP OVERWRITE */
 
 #facility_info_container {
 	text-align: center;
@@ -50,6 +122,11 @@ body {
 }
 
 #info_window_container {
+	width: 350px;
+	height: 300px;
+}
+
+#streetview_container {
 	width: 350px;
 	height: 300px;
 }
@@ -93,28 +170,38 @@ body {
 }
 
 @media only screen and (min-width: 960px){
-	#side_menu{
-		margin: 0;
-		z-index: 10;
-		height: 100%;
-		width: 30%;
-		max-width: 400px;
-		min-height: 600px;
-		display: block;
-		background-color: #F19C79;
-		color: #A44A3F;
-		padding: 10px;
-		/*position: absolute;*/
-	}
 
-
+	/*#top_menu {
+		display: none;
+	}*/
 
 	#map_container{
 		margin: 0;
 		height: 100%;
 		width: 100%;
-		min-height: 600px;
+		right: 0;
+		z-index: 0;
 	}
+
+	#side_menu{
+		margin: 0;
+		left: 0;
+		height: 100%;
+		width: 30%;
+		display: block;
+		background-color: #FFF;
+		color: #A44A3F;
+		padding: 10px;
+		position: fixed;
+		overflow-y: scroll;
+		position: absolute;
+		z-index: 1;
+
+	}
+
+
+
+
 
 	#location-text {
 		font-size: 1.2em;
@@ -125,10 +212,7 @@ body {
 	}
 }
 
-@media only screen and (max-width: 991px){
-	#top_menu {
-		width: 100%;
-		height: 60px;
-		background-color: #F19C79;
-	}
-}
+
+
+
+

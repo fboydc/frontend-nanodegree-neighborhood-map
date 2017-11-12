@@ -12,25 +12,42 @@
 	<body>
 
 	 <div id="container">
+	 	<div id="top_menu">
+			<div id="hamburger_container">
+				<a class="glyphicon glyphicon-menu-hamburger" data-toggle="collapse" href="#mobile_menu" id="hamburger"></a>i
+			</div>
+	 	</div>
 		<div id="side_menu">
 			<div id="top">
 				<h3><b>CURRENT LOCATION:</b></h3>
-				<p id="location-text" data-bind="text: currentLocation().addressline"></p>
+				<p id="location-text" data-bind="text: currentLocation().formatted_address"></p>
 				<a class="btn btn-default" data-toggle="collapse" href="#address_change" id="address_change_button">change address <i>(toggle)</i></a>
-				<button class="btn btn-primary" data-bind="click: resetZoom">reset zoom</button>
+				<button class="btn btn-primary" data-bind="click: resetZoom">re-center</button>
 				<div class="collapse multi-collapse" id="address_change">
 						<hr>
+						<p>Type your Zellow address here:</p>
 						<div class="input-group location-data">
-							<span class="input-group-addon" id="addressline_label">Address:</span>
-							<input type="text" class="form-control" id="addressline_input" placeholder="type in the address...">
+								<input type="text" class="form-control" id="street_address" placeholder="address" data-bind="css: {input: address.hasError}, value: address, valueUpdate: 'afterkeydown'"/>
+								<span data-bind="css: {error: address.hasError}, visible: address.hasError, text: address.validationMessage"></span>
+
 						</div>
-						<button class="btn btn-primary" data-bind="click: changeLocation">Go</button>
-						<span id="messages"></span>
+						<div class="input-group location-data">
+								<input type="text" class="form-control" id="city" placeholder="city"
+								data-bind="css: {input: city.hasError}, value: city, valueUpdate: 'afterkeydown'"/>
+								<span data-bind="css: {error: city.hasError}, visible: city.hasError, text: city.validationMessage"></span>
+						</div>
+						<div class="input-group location-data">
+								<input type="text" class="form-control" id="state" placeholder="state"
+								data-bind="css: {input: state.hasError}, value: state, valueUpdate:'afterkeydown'"/>
+								<span data-bind="css: {error: state.hasError}, visible: state.hasError, text: state.validationMessage"></span>
+						</div>
+						<button class="btn btn-primary" data-bind="enable: validated, click: newLocation" style="disabled: true;">Go</button>
+						<button class="btn btn-default" data-bind="click: clearFields">clear fields</button>
 				</div>
 			</div>
 			<hr>
 			<div id="bottom">
-				<button class="btn btn-primary" data-bind="click: locationZoom">go to property</button>
+				<button class="btn btn-primary" data-bind="click: goToLocation">go to property</button>
 				<select class="form-control" data-bind="options: currentLocation().facilityCategoryList, optionsText: 'type', value: currentFacilityList" id="categorySelect"></select>
 
 
@@ -44,7 +61,6 @@
 
 		</div>
 		<div id="map_container"></div>
-		<div id="modal_container"></div>
 	</div>
 
 		<script src="js/jquery-3.2.1.min.js"></script>

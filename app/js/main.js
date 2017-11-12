@@ -1,11 +1,21 @@
-var locationData = {addressline: "708 N Whitford Rd, 191341, Exton, PA"};
+var locationData = {
+	address: "708 N Whitford Rd",
+	zip: "191341",
+	city: "Exton",
+	state: "PA",
+
+};
 
 
 
 
 
-var Location = function(addressline){
-	this.addressline = addressline;
+
+var Location = function(address, city, state){
+	this.address = address;
+	this.city = city;
+	this.state = state;
+	this.formatted_address = address+", "+city+", "+state;
 	this.facilityCategoryList = [];
 	this.init();
 }
@@ -19,10 +29,8 @@ Location.prototype.init = function(){
 	this.facilityCategoryList.push(new FacilityCategory('Mall', 'shopping_mall'));
 	this.facilityCategoryList.push(new FacilityCategory('Schools', 'school'));
 	this.facilityCategoryList.push(new FacilityCategory('Public Transit', 'transit_station'));
-	this.facilityCategoryList.push(new FacilityCategory('Night Life', 'night_club'));
 	this.facilityCategoryList.push(new FacilityCategory('Groceries', 'convenience_store'));
 	this.facilityCategoryList.push(new FacilityCategory('Mailing Services', 'post_office'));
-	this.facilityCategoryList.push(new FacilityCategory('Universities', 'university'));
 	this.facilityCategoryList.push(new FacilityCategory('Veterinary', 'veterinary_care'));
 	this.facilityCategoryList.push(new FacilityCategory('Pet Shops', 'pet_store'));
 }
@@ -63,49 +71,117 @@ Facility.prototype.addMarker = function(){
 
 
 
+
+
 var ViewModel = function(){
 	var self = this;
 	this.currentLocation = ko.observable();
-
 	this.currentFacilityList = ko.observable();
-
-	this.currentLocation(new Location(locationData.addressline));
-
-	this.currentFacilityList(this.currentLocation().facilityCategoryList[0]);
-
+	this.currentFacility = ko.observable();
+	this.address = ko.observable();
+	this.city = ko.observable();
+	this.state = ko.observable();
 	this.locationMarker = null;
+
+
+	this.validated = ko.computed(function(){
+
+		if((self.address() && self.address().trim())
+			&& (self.city() && self.city().trim())
+			&& (self.state() && self.state().trim())){
+			return true;
+		}else{
+			return false;
+		}
+	});
+
+
+
+
 
 	this.currentFacilityList.subscribe(function(){
 		self.filterMarkers();
 	});
 
 
-	this.emptyFieldsError = function(input){
+	this.init = function(){
+		this.currentLocation(new Location(locationData.address, locationData.city, locationData.state));
+		this.currentFacilityList(this.currentLocation().facilityCategoryList[0]);
 
-		input.style.border = "1px solid red";
-		var message_element = document.getElementById('messages');
-		message_element.innerHTML = "Error: address line field empty*";
-		message_element.style.color = "red";
+		this.address.extend({required: "*address is required"});
+		this.city.extend({required: "*city is required"});
+		this.state.extend({required: "*state is required"});
 
 	}
 
-	this.resetAddressInput = function(input){
-		 input.value = '';
-		 document.getElementById('messages').innerHTML='';
-	}
+
 
 	this.changeMap = function(result){
 		this.map.setCenter(result.geometry.location);
 		this.map.setZoom(15);
-		this.currentLocation(new Location(result.formatted_address));
+		var parsedAddress = this.parseAddress(result.address_components);
+		this.currentLocation(new Location(parsedAddress[0], parsedAddress[1], parsedAddress[2]));
 		this.currentLocation().latlong = result.geometry.location;
 		this.currentLocation().placeid = result.place_id;
-		this.getLocationDetails();
-		this.createLocationMarker(this.map);
 		this.searchFacilities();
+		self.createLocationMarker(this.map);
+
 
 
 	}
+
+	this.parseAddress = function(addressComponents){
+		var result = [];
+		var address = '';
+		var city = '';
+		var state = '';
+
+		for(var i =0; i<addressComponents.length; i++){
+			switch(true){
+				case(addressComponents[i].types[0] == "street_number"):
+					address += addressComponents[i].short_name+" ";
+					break;
+				case(addressComponents[i].types[0] == "route"):
+					address += addressComponents[i].short_name;
+					break;
+				case(addressComponents[i].types[0] == "locality"):
+					city =  addressComponents[i].short_name;
+					break;
+				case(addressComponents[i].types[0] == "administrative_area_level_1"):
+					state = addressComponents[i].short_name;
+					break;
+			}
+		}
+
+		result.push(address);
+		result.push(city);
+		result.push(state);
+
+		return result;
+	}
+
+
+	this.newLocation = function(){
+
+		//this.getZillowData(this.address(), this.city(), this.state());
+		var addressline = this.address() + ", " + this.city() + ", "+this.state();
+
+
+			this.geocoder.geocode({'address': addressline,
+				componentRestrictions: {country:'US'}}, function(results, status){
+				if(status === 'OK'){
+
+					if(results.length > 0){
+						self.changeMap(results[0]);
+
+					}else{
+						alert('Error: no results were found for your provided address.');
+					}
+				}
+			});
+
+	}
+
 
 	this.searchFacilities = function(){
 		if(this.currentFacilityList())
@@ -126,22 +202,13 @@ var ViewModel = function(){
 
 	}
 
-	this.getLocationDetails = function(){
-		console.log("id "+this.currentLocation().placeid);
-		this.service.getDetails({placeId: this.currentLocation().placeid}, function(place, status){
-			console.log(status);
-			if(status == google.maps.places.PlacesServiceStatus.OK){
-				console.log("here");
-				console.log(place);
-			}
-		});
 
-	}
 
 
 	this.facilitiesCallback = function(current, all){
 
 		return function(results, status){
+				console.log(status);
 			if(status === google.maps.places.PlacesServiceStatus.OK){
 				for(var j=0; j<results.length; j++){
 					var facility = new Facility(results[j], self.createFacilityMarker(results[j]));
@@ -191,13 +258,25 @@ var ViewModel = function(){
 		self.map.setCenter(context.position);
 		self.map.setZoom(15);
 		context.setAnimation(google.maps.Animation.DROP);
-		//self.googleDetailsSearch(context);
-		self.createInfowindowContent(context);
+		self.createFacilityInfoWindow(context);
 
 	}
 
 
-	this.createInfowindowContent = function(context){
+	this.goToLocation = function(){
+
+		if(this.map.getCenter() !== this.currentLocation().latlong){
+			this.map.setCenter(this.currentLocation().latlong);
+			this.map.setZoom(17);
+		}
+		this.locationMarker.setAnimation(google.maps.Animation.DROP);
+		this.createLocationInfoWindow();
+
+
+	}
+
+
+	this.createFacilityInfoWindow = function(context){
 		this.infowindow.setContent( '<div id="info_window_container">'+
 									'<nav>'+
 										'<ul id="info_window_header" class="nav nav-tabs">'+
@@ -220,11 +299,39 @@ var ViewModel = function(){
 
 	}
 
+
+	this.createLocationInfoWindow = function(){
+		this.infowindow.setContent('');
+		console.log(this.locationMarker.position);
+		this.streetViewService.getPanoramaByLocation(this.locationMarker.position, 50, this.streetViewCallback);
+		this.infowindow.open(this.map, this.locationMarker);
+
+	}
+
+	this.streetViewCallback = function(data, status){
+		console.log(status);
+		 if (status == google.maps.StreetViewStatus.OK) {
+		 	console.log('here');
+		 	console.log(self.currentLocation().latlong);
+		 	this.infowindow.setContent("<div id='streetview_container'>content goes here</div>");
+		 	var panoramaView = new google.maps.StreetViewPanorama(document.getElementById('streetview_container'),
+			 {
+				position: self.currentLocation().latlong,
+				pov: {
+					heading: 34,
+					pitch: 10
+				}
+			});
+
+
+		 }
+	}
+
+
 	this.getDetailsData = function(id){
 
 		this.service.getDetails({placeId: id}, function(place, status){
 			if(status === google.maps.places.PlacesServiceStatus.OK){
-				console.log(place);
 				self.showDistance(place.geometry.location);
 				self.getVenueId(place.name, place.geometry.location.lat(), place.geometry.location.lng());
 				var container = document.getElementById('info_window_body');
@@ -304,6 +411,7 @@ var ViewModel = function(){
 				success: function(data){
 					var tips = data.response.tips.items;
 					content = self.infowindow.heading;
+					content += "<img src='img/foursquare.png'>";
 					if(tips.length > 0){
 
 						for(var i=0; i<tips.length; i++){
@@ -338,8 +446,11 @@ var ViewModel = function(){
           		avoidTolls: false
 			}, function(response, status){
 				if(status == 'OK'){
+					var distance_element = document.getElementById('destination_distance');
+					if(distance_element){
+						distance_element.innerHTML = response.rows[0].elements[0].distance.text;
+					}
 
-					document.getElementById('destination_distance').innerHTML = response.rows[0].elements[0].distance.text;
 				}
 
 			});
@@ -352,6 +463,7 @@ var ViewModel = function(){
 		var container = document.getElementById('info_window_body');
 		var content = this.infowindow.heading;
 
+
 		if(this.infowindow.venue){
 			var venuePhotosUrl = "https://api.foursquare.com/v2/venues/"+this.infowindow.venue+"/photos?v=20161016&client_id=G2CO0HDKUJAJMKRVLLSD2PAZ20MVMJJWRGAKUC3M4H20NJWV&client_secret=5NVLZB2BP2VFIHB1URO1AVRVECFLHYBPIGUKE0ISXU0AXEHB";
 			$.ajax({
@@ -360,6 +472,7 @@ var ViewModel = function(){
 					var photos = data.response.photos.items;
 
 					if(photos.length > 0){
+						content += "<p><img src='img/foursquare.png'></p?";
 						content += '<div class="container" id="carousel-container">';
 						content += '<div id="infowindow_carousel" class="carousel slide">';
 						content += '<div class="carousel-inner">';
@@ -433,6 +546,10 @@ var ViewModel = function(){
 
 		this.locationMarker = marker;
 
+		google.maps.event.addListener(this.locationMarker, 'click', function(){
+			self.goToLocation();
+		});
+
 
 	}
 
@@ -449,27 +566,13 @@ var ViewModel = function(){
 
 
 
-	this.changeLocation = function(){
-		var input = document.getElementById('addressline_input');
-		if(input.value){
 
-			this.geocoder.geocode({'address': input.value,
-				componentRestrictions: {country:'US'}}, function(results, status){
-				if(status === 'OK'){
-					if(results.length > 0){
-						self.changeMap(results[0]);
-
-					}else{
-						alert('Error: no results were found for your provided address.');
-					}
-				}
-			});
-			this.resetAddressInput(input);
-		}else{
-			this.emptyFieldsError(input);
-		}
-
+	this.clearFields = function(){
+		this.address('');
+		this.city('');
+		this.state('');
 	}
+
 
 
 	this.resetZoom = function(){
@@ -480,15 +583,19 @@ var ViewModel = function(){
 	}
 
 	this.locationZoom = function(){
-		if(this.map.getCenter() !== this.currentLocation().latlong){
-			this.map.setCenter(this.currentLocation().latlong);
-			this.map.setZoom(17)
-		}
+
 
 	}
 
-	this.getZillowData = function(address){
-		var zillowUrl = "http://www.zillow.com/webservice/GetSearchResults.htm?zws-id=X1-ZWz1g2zp84l5vv_4234r&address=10%20Dillon%20Ct,&citystatezip=EXTON,PA"
+	this.getZillowData = function(address, city, state){
+		var zillowUrl = "http://www.zillow.com/webservice/GetSearchResults.htm?zws-id=X1-ZWz1g2zp84l5vv_4234r&address="+address+"&citystatezip="+city+","+state;
+
+		$.ajax({
+			url: zillowUrl,
+			success: function(response, status){
+				console.log(response);
+			}
+		});
 	}
 
 
@@ -498,27 +605,45 @@ var ViewModel = function(){
 
 
 
-function loadMap(){
+ko.extenders.required = function(target, overrideMessage){
 
-	vmodel.geocoder = new google.maps.Geocoder();
-	vmodel.geocoder.geocode({'address':vmodel.currentLocation().addressline},
-		function(results, status){
-			if(status === 'OK'){
-				vmodel.currentLocation().latlong =  results[0].geometry.location;
-				vmodel.currentLocation().placeid = results[0].place_id;
-				vmodel.map = new google.maps.Map(document.getElementById('map_container'), {
+	target.hasError = ko.observable();
+	target.validationMessage = ko.observable();
+
+	function validate(value){
+		target.hasError(value ? false : true);
+		target.validationMessage(value ? "" : overrideMessage || "This field is required");
+	}
+
+	validate(target());
+
+	target.subscribe(validate);
+
+	return target;
+
+}
+
+
+function loadMap(){
+	vmodel.map = new google.maps.Map(document.getElementById('map_container'), {
 					center: vmodel.currentLocation().latlong,
 					zoom: 15
 				});
-				vmodel.infowindow = new google.maps.InfoWindow();
-				vmodel.service = new google.maps.places.PlacesService(vmodel.map);
-				vmodel.distanceService = new google.maps.DistanceMatrixService;
-				vmodel.createLocationMarker(vmodel.map);
-				vmodel.getLocationDetails();
-				vmodel.searchFacilities();
 
-			}
-		});
+	vmodel.geocoder = new google.maps.Geocoder();
+	vmodel.infowindow = new google.maps.InfoWindow();
+	vmodel.service = new google.maps.places.PlacesService(vmodel.map);
+	vmodel.distanceService = new google.maps.DistanceMatrixService;
+	vmodel.streetViewService = new google.maps.StreetViewService();
+	vmodel.address(locationData.address);
+	vmodel.city(locationData.city);
+	vmodel.state(locationData.state);
+	vmodel.newLocation();
+
+	google.maps.event.addDomListener(window, 'resize', function(){
+		vmodel.map.setCenter(vmodel.currentLocation.latlong);
+	});
+
 
 
 
@@ -526,4 +651,12 @@ function loadMap(){
 
 
 vmodel = new ViewModel();
+vmodel.init();
+
 ko.applyBindings(vmodel);
+
+
+$('#hamburger').click(function(){
+	$("#side_menu").slideToggle();
+});
+
