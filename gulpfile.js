@@ -1,12 +1,14 @@
 var gulp = require('gulp');
-var minifyInline = require('gulp-minify-inline');
+var uglify = require('gulp-uglify');
+var cssnano = require('gulp-cssnano');
 var runSequence = require('run-sequence');
 
 
-gulp.task('copy-bootstrap-css', function(){
-	return gulp.src('app/css/bootstrap.min.css')
+gulp.task('copy-css', function(){
+	return gulp.src('app/css/**/*.min.css')
 		.pipe(gulp.dest('dist/css/'));
 });
+
 
 gulp.task('copy-fonts', function(){
 	return gulp.src('app/fonts/*')
@@ -18,17 +20,40 @@ gulp.task('copy-imgs', function(){
 		.pipe(gulp.dest('dist/img/'));
 });
 
-gulp.task('minify-inline', function(){
-	return gulp.src('app/**/*.html')
-		.pipe(minifyInline())
-		.pipe(gulp.dest('dist'));
+gulp.task('copy-js', function(){
+	return gulp.src('app/js/**/*.min.js')
+		.pipe(gulp.dest('dist/js/'));
+
+});
+
+gulp.task('copy-html', function(){
+	return gulp.src('app/index.html')
+		.pipe(gulp.dest('dist/'));
+});
+
+gulp.task('minify-main-css', function(){
+	return gulp.src('app/css/main.css')
+		  .pipe(cssnano())
+		  .pipe(gulp.dest('dist/css/'))
+});
+
+gulp.task('minify-main-js', function(){
+	return gulp.src('app/js/main.js')
+		.pipe(uglify())
+		.pipe(gulp.dest('dist/js/'));
 });
 
 
+
+
 gulp.task('build', function(callback){
-	runSequence('copy-bootstrap-css',
+	runSequence('copy-css',
 				'copy-fonts',
 				'copy-imgs',
-				'minify-inline');
+				'copy-js',
+				'copy-html',
+				'minify-main-css',
+				'minify-main-js'
+				);
 });
 

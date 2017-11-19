@@ -18,7 +18,8 @@
   "homepage": "https://github.com/fboydc/frontend-nanodegree-neighborhood-map#readme",
   "devDependencies": {
     "gulp": "^3.9.1",
-    "gulp-minify-inline": "^1.0.0",
+    "gulp-cssnano": "^2.1.2",
+    "gulp-uglify": "^3.0.0",
     "run-sequence": "^2.2.0"
   }
 }
