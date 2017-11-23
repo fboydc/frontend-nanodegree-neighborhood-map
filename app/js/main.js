@@ -97,8 +97,55 @@ object with it's corresponding result.
 
 
 PROPERTY: ZpidError
-Type: ko.Observable
+Type: ko.Observable <String>
 Description:
+used by the getZillowLocationId function. If undefined content will show normally; if assigned a string, a message will show in place
+of the infowindow zillow section content, displaying a message to the user.
+
+
+
+PROPERTY: zpid
+Type: String
+Description:
+contains the zpid used by the zillow api to retrieve a property's information.
+
+PROPERTY:zestimateError
+Type: ko.Observable <String>
+Description:
+used by the getZestimate function. If undefined content will show normally; if assigned a string, a message will show in place
+of the infowindow zillow section content, displaying a message to the user.
+
+PROPERTY: amount
+Type: ko.Observable <String>
+Description:
+contains the price fetched from the zillow API for the current location.
+
+PROPERTY: last_updated
+Type: ko.Observable <String>
+Description:
+Contains the valid date of the price for the current location. This was the last time the price
+was updated in the Zillow API.
+
+PROPERTY:value_change
+Type: ko.Observable <String>
+Desription:
+Contains the difference in price from the original price to the current one, in the current location.
+May be positive or negative.
+
+PROPERTY: value_low
+Type: ko.Observable <String>
+Desription:
+Contains the lowest the price for this property has ever been.
+
+PROPERTY: value_high
+Type: ko.Observable <String>
+Desription:
+Contains the highest the price for this property has ever been.
+
+PROPERTY: value_duration
+Type: ko.Observable <String>
+Desription:
+Contains the number of days used to calculate value_change of the property.
 *****************************************************************************************************/
 
 
@@ -130,15 +177,6 @@ var Location = function(address, city, state) {
     this.init();
 };
 
-/*
-this.currentLocation().z_dollar_amount = zestimate.find('amount').text();
-        this.currentLocation().z_last_updated = zestimate.find('last-updated').text();
-        this.currentLocation().z_value_change = zestimate.find('valueChange').text();
-        this.currentLocation().z_value_low = zestimate.find('low').text();
-        this.currentLocation().z_value_high = zestimate.find('high').text();
-        this.currentLocation().z_value_duration = zestimate.find('valueChange').attr("duration");
-
-*/
 
 
 /***************************************************************************
@@ -177,10 +215,6 @@ property will be as large as the number of FacilityCategories created in the ini
 PROPERTY: type
 Type: String
 Description: a string describing the location type as per google maps api.
-
-PROPERTY: city
-Type: String
-Description: represents a city.
 
 PROPERTY: key
 Type: String
@@ -250,6 +284,7 @@ PARAMETERS: 2 - place (google.maps.places.PlaceResult), marker(google.maps.Marke
 DESCRIPTION: initializes a Facility object.
 **************************************************/
 
+
 var Facility = function(place, marker) {
     this.name = place.name;
     this.location = place.geometry.location;
@@ -258,6 +293,68 @@ var Facility = function(place, marker) {
 
 };
 
+
+
+/****************************************************************************************
+CLASS NAME: FacilityDetails
+Description:
+A FacilityDetails object will be created for each marker in the map.
+All the information relevant to the google place will be contained in this object, and will
+be shown in it's infowindow.
+
+
+PROPERTY: name
+Type: String
+Description:
+It is homogeneous to google PlaceResult.name property. It is the
+name of the place as specified in the PlaceResult object, returned by the google maps
+places api.
+
+PROPERTY: phone
+Type: String
+Description:
+The Place's phone number, formatted according to the number's regional convention.
+As returned by the placesResult object from Google's getDetails Method (Google Maps Javascript API)
+
+PROPERTY: image
+Type: String
+Description:
+First indexed item as returned in the Photos of this  Array<PlacePhoto> contained in the placesResult object.
+
+PROPERTY: address
+Type: String
+Description:
+The Place's formatted address, as return in the placesResult object.
+
+PROPERTY: rating
+Type: number
+Description:
+A rating, between 1.0 to 5.0, based on user reviews of this Place, as return by the placesResult object.
+
+PROPERTY: distance
+Type: String
+Description:
+The distance in km as calculate by the distance matrix service of the google maps api.
+This is the distance from currentLocation to currentPlace object as contained in the view model.
+
+PROPERTY: website
+Type: String
+Description:
+The website for currentPlace object as contained in the view model, returned by the placesResult object.
+
+PROPERTY: open_now
+Type: boolean
+Description:
+the value for the open_now property of the placeResult object as returned by the Google Maps API.
+
+PROPERTY: opening_hours
+Type: String
+Description:
+
+
+
+
+*****************************************************************************************************/
 var FacilityDetails = function(){
     this.name = ko.observable();
     this.phone = ko.observable();
@@ -758,6 +855,16 @@ var ViewModel = function() {
                         facilityDetails.opening_hours.push(current);
                     }
                 }
+
+                if(place.opening_hours)
+                    facilityDetails.open_now(place.opening_hours.open_now);
+
+                if(place.website)
+                  facilityDetails.website(place.website);
+
+
+
+
             }
         });
     };
@@ -1008,6 +1115,7 @@ var ViewModel = function() {
         if (window.innerWidth < 961) {
             $("#side_menu").hide();
         }
+        this.infowindow.close();
         this.map.setCenter(this.currentLocation().latlong);
         this.map.setZoom(15);
         this.map.fitBounds(this.bounds);
@@ -1171,6 +1279,7 @@ var ViewModel = function() {
                 },
                 success: function(data, status) {
                     self.parseZillowData(data);
+                    console.log(data);
                     //self.renderZillowData();
                 },
                 error: function(data, error){

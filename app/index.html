@@ -102,14 +102,58 @@
                         </div>
                     <!-- /ko-->
 
-                    <!-- ko if:(currentLocation().zpid() && !currentLocation().zpidError() && !currentLocation().zestimateError())-->
+                    <!-- ko if:(currentLocation().zpid() && !currentLocation().zestimateError())-->
                     <ul class="list-group">
-                        <li class="list-group-item"><b>Amount(USD):</b>&nbsp<span data-bind="text: currentLocation().amount"></span></li>
-                        <li class="list-group-item"><b>Last Price Update:</b>&nbsp<span data-bind="text: currentLocation().last_updated"></span></li>
-                        <li class="list-group-item"><b>Change in Value:</b>&nbsp<span data-bind="text: currentLocation().value_change"></span></li>
-                        <li class="list-group-item"><b>High:</b>&nbsp<span data-bind="text: currentLocation().value_high"></span></li>
-                        <li class="list-group-item"><b>Low:</b>&nbsp<span data-bind="text: currentLocation().value_low"></span></li>
-                        <li class="list-group-item"><b>Relevant:</b>&nbsp<span data-bind="text: currentLocation().value_duration"></span> days</li>
+
+                        <li class="list-group-item"><b>Amount(USD):</b>&nbsp
+                            <!-- ko if: currentLocation().amount -->
+                                <span data-bind="text: currentLocation().amount"></span>
+                            <!-- /ko-->
+                            <!-- ko ifnot: currentLocation().amount -->
+                                <span>No data available</span>
+                            <!-- /ko-->
+                        </li>
+
+                        <li class="list-group-item"><b>Last Price Update:</b>&nbsp
+                            <!-- ko if:currentLocation().last_updated-->
+                                <span data-bind="text: currentLocation().last_updated"></span>
+                            <!-- /ko-->
+                            <!-- ko ifnot: currentLocation().last_updated-->
+                                <span>No data available</span>
+                            <!-- /ko-->
+                        </li>
+                        <li class="list-group-item"><b>Change in Value:</b>&nbsp
+                            <!-- ko if:currentLocation().value_change-->
+                                <span data-bind="text: currentLocation().value_change"></span>
+                            <!-- /ko-->
+                            <!-- ko ifnot: currentLocation().value_change-->
+                                <span>No data available</span>
+                            <!-- /ko-->
+                        </li>
+                        <li class="list-group-item"><b>High:</b>&nbsp
+                            <!-- ko if:currentLocation().value_high-->
+                                <span data-bind="text: currentLocation().value_high"></span>
+                            <!-- /ko-->
+                            <!-- ko ifnot: currentLocation().value_high-->
+                                <span>No data available</span>
+                            <!-- /ko-->
+                        </li>
+                        <li class="list-group-item"><b>Low:</b>&nbsp
+                            <!-- ko if:currentLocation().value_low-->
+                                <span data-bind="text: currentLocation().value_low"></span>
+                            <!-- /ko-->
+                            <!-- ko ifnot: currentLocation().value_low-->
+                                <span>No data available</span>
+                            <!-- /ko-->
+                        </li>
+                        <li class="list-group-item"><b>Relevant:</b>&nbsp
+                            <!-- ko if:currentLocation().value_duration-->
+                                <span data-bind="text: currentLocation().value_duration"> days</span>
+                            <!-- /ko-->
+                            <!-- ko ifnot: currentLocation().value_duration-->
+                                <span>No data available</span>
+                            <!-- /ko-->
+                        </li>
                     </ul>
                     <p>Data fetched from www.zillow.com</p>
                     <!-- /ko-->
@@ -177,6 +221,27 @@
                                 <!-- /ko -->
                                 <!-- ko ifnot: currentPlace().distance-->
                                     <span>No data available</span>
+                                <!-- /ko-->
+                            </p>
+                            <p>
+                                <strong>Open Now:</strong>
+                                <!-- ko if: currentPlace().open_now-->
+                                    Yes
+                                <!-- /ko-->
+                                <!-- ko if: (!currentPlace().open_now() && currentPlace().opening_hours().length > 0)-->
+                                    No
+                                <!-- /ko-->
+                                <!-- ko if: (currentPlace().opening_hours().length == 0)-->
+                                    no data available
+                                <!-- /ko -->
+                            </p>
+                            <p>
+                                <strong>Website:</strong>
+                                <!-- ko if: currentPlace().website-->
+                                    <a data-bind="attr: {src: currentPlace().website}, text: currentPlace().website"></a>
+                                <!-- /ko-->
+                                <!-- ko ifnot: currentPlace().website-->
+                                        no data available
                                 <!-- /ko-->
                             </p>
                         </div>
