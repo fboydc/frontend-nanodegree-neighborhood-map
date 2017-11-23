@@ -12,15 +12,16 @@
 </head>
 
 <body>
-
-    <div id="container">
-        <div id="top_menu">
+    <!-- ko ifnot: mapError -->
+    <section id="container">
+        <nav id="top_menu">
             <div id="hamburger_container">
-                <a class="glyphicon glyphicon-menu-hamburger" data-toggle="collapse" href="#mobile_menu" id="hamburger"></a>
+                <a class="glyphicon glyphicon-menu-hamburger" id="hamburger" data-bind="click: toggleMenu"></a>
             </div>
-        </div>
-        <div id="side_menu">
-            <div id="top">
+        </nav>
+
+        <aside id="side_menu" data-bind="visible: visibleMenu">
+            <section id="top">
                 <h3><b>CURRENT LOCATION:</b></h3>
                 <p id="location-text" data-bind="text: currentLocation().formatted_address"></p>
                 <a class="btn btn-default" data-toggle="collapse" href="#address_change" id="address_change_button">change address <i>(toggle)</i></a>
@@ -44,9 +45,9 @@
                     <button class="btn btn-default" data-bind="enable: validated, click: newLocation" style="disabled: true;">Go</button>
                     <button class="btn btn-default" data-bind="click: clearFields">clear fields</button>
                 </div>
-            </div>
+            </section>
             <hr>
-            <div id="bottom">
+            <section id="bottom">
                 <button class="btn btn-default" data-bind="click: goToLocation">go to property</button>
                 <select class="form-control" data-bind="options: currentLocation().facilityCategoryList, optionsText: 'type', value: currentFacilityList" id="categorySelect"></select>
 
@@ -54,16 +55,238 @@
                     <a href="#" class="list-group-item" data-bind="text: name, click: $parent.goToFacility"></a>
                 </div>
                 <div>number of matching results: <span data-bind="text: currentFacilityList().numOfFacilities()"></span></div>
-            </div>
+            </section>
 
-        </div>
-        <div id="map_container"></div>
-    </div>
-    <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyB-jAg9OREMefSMxX5DlzEBB3eD3oho5FI&libraries=places&callback=loadMap"></script>
+        </aside>
+        <section id="map_container"></section>
+    </section>
+    <!-- /ko-->
+    <!-- ko if: mapError -->
+    <main class="error_container">
+        <article class="row">
+            <div class="error_container_item">
+                     <h3>Error, could not fetch map. Please check the Google maps API URL</h3>
+            </div>
+        </article>
+    </main>
+    <!-- /ko -->
+
     <script src="js/jquery-3.2.1.min.js"></script>
     <script src="js/knockout-3.4.2.min.js"></script>
     <script src="js/bootstrap.min.js"></script>
+    <script type="text/html" id="property_info_window">
+        <h3 data-bind="text: currentLocation().address"></h3>
+        <main class="container">
+            <nav>
+                <ul class="nav nav-pills">
+                    <li class="active"><a href="#street_view" data-toggle="tab">street view</a></li>
+                    <li><a href="#zillow" data-toggle="tab" data-bind="click: getZestimate">zillow</a></li>
+                </ul>
+            </nav>
+            <hr>
+            <section class="tab-content clearfix">
+                <article class="tab-pane active" id="street_view">
+                    <div id='streetview_container'>
+                    </div>
+                </article>
+                <article class="tab-pane" id="zillow">
+                    <h4>Zillow Data</h4>
+                    <!-- ko if: currentLocation().zpidError-->
+                        <div class="jumbotron">
+                            <p data-bind="text: currentLocation().zpidError"></p>
+                        </div>
+                    <!-- /ko-->
+                    <!-- ko if: currentLocation().zestimateError-->
+                        <div class="jumbotron">
+                            <p data-bind="text: currentLocation().zestimateError"></p>
+                        </div>
+                    <!-- /ko-->
+
+                    <!-- ko if:(currentLocation().zpid() && !currentLocation().zpidError() && !currentLocation().zestimateError())-->
+                    <ul class="list-group">
+                        <li class="list-group-item"><b>Amount(USD):</b>&nbsp<span data-bind="text: currentLocation().amount"></span></li>
+                        <li class="list-group-item"><b>Last Price Update:</b>&nbsp<span data-bind="text: currentLocation().last_updated"></span></li>
+                        <li class="list-group-item"><b>Change in Value:</b>&nbsp<span data-bind="text: currentLocation().value_change"></span></li>
+                        <li class="list-group-item"><b>High:</b>&nbsp<span data-bind="text: currentLocation().value_high"></span></li>
+                        <li class="list-group-item"><b>Low:</b>&nbsp<span data-bind="text: currentLocation().value_low"></span></li>
+                        <li class="list-group-item"><b>Relevant:</b>&nbsp<span data-bind="text: currentLocation().value_duration"></span> days</li>
+                    </ul>
+                    <p>Data fetched from www.zillow.com</p>
+                    <!-- /ko-->
+                    <!-- ko ifnot: currentLocation().zpid -->
+                        <div class="jumbotron">
+                            no zillow data available for this location. :(
+                        </div>
+                    <!-- /ko-->
+                </article>
+            </section>
+        </main>
+    </script>
+    <script  type="text/html" id="facility_info_window">
+        <main class="container">
+            <nav>
+                <ul class="nav nav-pills">
+                    <li class="active"><a href="#facility_details" data-toggle="tab">details</a></li>
+                    <li><a href="#opening_hours" data-toggle="tab">hours</a></li>
+                    <li><a href="#reviews" data-toggle="tab" data-bind="click: getFoursquareTips">reviews</a></li>
+                    <li><a href="#photos" data-toggle="tab" data-bind="click: getFoursquarePhotos">photos</a></li>
+                </ul>
+            </nav>
+            <section class="tab-content clearfix" style="margin-top: 10px">
+                <article class="tab-pane active" id="facility_details">
+                    <hr>
+                    <div class="media">
+                        <div class="media-left">
+                            <div>
+                                <img data-bind="attr: { src: currentPlace().image}" alt="place image" class="thumbnail">
+                            </div>
+                        </div>
+                        <div class="media-body">
+                            <h4 data-bind="text: currentPlace().name"></h4>
+                            <p>
+                                <strong>Phone: </strong>
+                                <!-- ko if: currentPlace().phone -->
+                                <span data-bind="text: currentPlace().phone"></span>
+                                <!-- /ko -->
+                                <!-- ko ifnot: currentPlace().phone-->
+                                <span>No data available</span>
+                                <!-- /ko -->
+                            </p>
+                             <p>
+                                <strong>Address: </strong>
+                                <!-- ko if: currentPlace().address-->
+                                <span data-bind="text: currentPlace().address"></span>
+                                <!-- /ko-->
+                                <!-- ko ifnot: currentPlace().address-->
+                                <span>No data available</span>
+                                <!-- /ko-->
+                            </p>
+                             <p>
+                                <strong>Rating: </strong>
+                                <!-- ko if: currentPlace().rating-->
+                                <span data-bind="text: currentPlace().rating"></span>
+                                <!-- /ko-->
+                                <!-- ko ifnot: currentPlace().rating-->
+                                <span>No data available</span>
+                                <!-- /ko-->
+                            </p>
+                            <p>
+                                <strong>Distance:</strong>
+                                <!-- ko if: currentPlace().distance -->
+                                    <span data-bind="text: currentPlace().distance"></span>
+                                <!-- /ko -->
+                                <!-- ko ifnot: currentPlace().distance-->
+                                    <span>No data available</span>
+                                <!-- /ko-->
+                            </p>
+                        </div>
+                    </div>
+                </article>
+                <article class="tab-pane" id="opening_hours">
+                    <hr>
+                    <h4 data-bind="text: currentPlace().name"></h4>
+                    <p><strong>opening hours:</strong></p>
+
+                    <!-- ko if: currentPlace().opening_hours().length > 0-->
+                    <ul data-bind="foreach: currentPlace().opening_hours">
+                        <li data-bind="text: $data"></li>
+                    </ul>
+                    <!-- /ko -->
+                    <!-- ko if: currentPlace().opening_hours().length == 0 -->
+                        <div class="jumbotron">
+                            <strong>Sorry, No data available :(</strong>
+                        </div>
+                    <!-- /ko-->
+                </article>
+                <article class="tab-pane" id="reviews">
+                    <hr>
+                    <h4 data-bind="text: currentPlace().name"></h4>
+                    <p><strong>customer comments:</strong></p>
+                    <!-- ko if: currentPlace().venueIdError-->
+                        <div class="jumbotron">
+                            <p data-bind="text: currentPlace().venueIdError"></p>
+                        </div>
+                    <!-- /ko-->
+                    <!-- ko if:currentPlace().tipsError-->
+                        <div class="jumbotron">
+                            <p data-bind="text: currentPlace().tipsError"></p>
+                        </div>
+                    <!-- /ko-->
+                    <!-- ko if:currentPlace().tips().length > 0-->
+                    <div data-bind="foreach: currentPlace().tips">
+                        <div class="well">
+                            <p data-bind="text: text"></p>
+                            <em data-bind="text: user.firstName"></em>
+                        </div>
+                    </div>
+                    <!-- /ko-->
+                    <!-- ko if:(dataLoaded() == false) -->
+                        <img src="img/spinner.gif" alt="loading image">
+                    <!-- /ko -->
+                    <!-- ko if: (currentPlace().tips().length == 0 && dataLoaded() == true && !currentPlace().venueIdError()) -->
+                        <div class="jumbotron">
+                            <strong>Sorry, No data available :(</strong>
+                        </div>
+                    <!-- /ko-->
+                    <img src="img/foursquare.png" alt="foursquare logo">
+                </article>
+
+                <article class="tab-pane" id="photos">
+                    <hr>
+                    <h4 data-bind="text: currentPlace().name"></h4>
+                    <p><strong>photos:</strong></p>
+                    <div class="container" id="carousel-container">
+                     <!-- ko if: currentPlace().venueIdError-->
+                        <div class="jumbotron">
+                            <p data-bind="text: currentPlace().venueIdError"></p>
+                        </div>
+                    <!-- /ko-->
+                    <!-- ko if: currentPlace().photosError-->
+                        <div class="jumbotron">
+                            <p data-bind="text: currentPlace().photosError"></p>
+                        </div>
+                    <!-- /ko -->
+                        <!-- ko if:currentPlace().photos().length > 0-->
+                            <div class="carousel slide" data-ride="carousel" id="carousel">
+                                <div data-bind="foreach: currentPlace().photos" class="carousel-inner">
+                                    <!-- ko if:$index() == 0-->
+                                    <div class="item active">
+                                        <img data-bind="attr: { src: $data}" class="thumbnail">
+                                    </div>
+                                    <!-- /ko-->
+                                    <!-- ko: if:$index() > 0 -->
+                                    <div class="item">
+                                        <img data-bind="attr: { src: $data}" class="thumbnail">
+                                    </div>
+                                    <!-- /ko-->
+                                </div>
+                                <a class="left carousel-control" href="#carousel" data-slide="prev">
+                                  <span class="glyphicon glyphicon-chevron-left"></span>
+                                  <span class="sr-only">Previous</span>
+                                </a>
+                                <a class="right carousel-control" href="#carousel" data-slide="next">
+                                  <span class="glyphicon glyphicon-chevron-right"></span>
+                                  <span class="sr-only">Next</span>
+                                </a>
+                            </div>
+                        <!-- /ko-->
+                        <!-- ko if:(dataLoaded() == false)-->
+                            <img src="img/spinner.gif" alt="loading image">
+                        <!-- /ko-->
+                        <!-- ko if:(currentPlace().photos().length == 0 && dataLoaded() == true && !currentPlace().venueIdError()) -->
+                            <div class="jumbotron">
+                                <strong>Sorry, No data available :(</strong>
+                            </div>
+                        <!-- /ko-->
+                    </div>
+                    <img src="img/foursquare.png" alt="foursquare logo">
+                </article>
+            </section>
+        </main>
+    </script>
     <script src="js/main.js"></script>
+
+    <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyB-jAg9OREMefSMxX5DlzEBB3eD3oho5FI&libraries=places&callback=loadMap" onerror="vmodel.onMapError();"></script>
 
 </body>
 

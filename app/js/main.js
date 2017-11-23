@@ -17,6 +17,7 @@ locationData - Object
 Location - Class
 FacilityCategory - Class
 Facility - Class
+FacilityDetails - Class
 
 2. VIEW MODEL:
 
@@ -31,7 +32,9 @@ index.html - HTML file
 CODE NOT ENCAPSULATED BY KNOCKOUT.JS:
 
 1. loadMap() - Used by Google Maps API only / please see function description
-2. jQuery '.click' event - used for hiding/showing UI component/ please see function call description
+
+
+
 ***********************************************************************************************************/
 //-----------------------------------------------     MODEL    ----------------------------------------------//
 /************************************************************
@@ -44,7 +47,6 @@ he/she initially loads the application.
 Object properties:
 
 address - String
-zip - string
 city - string
 state - string
 ***********************************************************/
@@ -92,6 +94,11 @@ service of the google maps javascript api. Each element in the array will contai
 FacilityCategory object with a unique category identified by the 'type' property.
 The google maps nearbySearch service will populate the facilities property in each FacilityCategory
 object with it's corresponding result.
+
+
+PROPERTY: ZpidError
+Type: ko.Observable
+Description:
 *****************************************************************************************************/
 
 
@@ -108,13 +115,30 @@ var Location = function(address, city, state) {
     this.state = state;
     this.formatted_address = address + ", " + city + ", " + state;
     this.facilityCategoryList = [];
+    this.zpidError = ko.observable();
+    this.zpid = ko.observable();
+    this.zestimateError = ko.observable();
+    this.amount = ko.observable();
+    this.last_updated = ko.observable();
+    this.value_change = ko.observable();
+    this.value_low = ko.observable();
+    this.value_high = ko.observable();
+    this.value_duration = ko.observable();
 
     //A call to the init method instantiates all FacilityCategory objects,
     // and adds them to the facilityCategoryList correspondingly.
     this.init();
 };
 
+/*
+this.currentLocation().z_dollar_amount = zestimate.find('amount').text();
+        this.currentLocation().z_last_updated = zestimate.find('last-updated').text();
+        this.currentLocation().z_value_change = zestimate.find('valueChange').text();
+        this.currentLocation().z_value_low = zestimate.find('low').text();
+        this.currentLocation().z_value_high = zestimate.find('high').text();
+        this.currentLocation().z_value_duration = zestimate.find('valueChange').attr("duration");
 
+*/
 
 
 /***************************************************************************
@@ -234,6 +258,24 @@ var Facility = function(place, marker) {
 
 };
 
+var FacilityDetails = function(){
+    this.name = ko.observable();
+    this.phone = ko.observable();
+    this.image = ko.observable();
+    this.address = ko.observable();
+    this.rating = ko.observable();
+    this.distance = ko.observable();
+    this.website = ko.observable();
+    this.open_now = ko.observable();
+    this.opening_hours = ko.observableArray([]);
+    this.venueId = ko.observable();
+    this.venueIdError = ko.observable();
+    this.tips = ko.observableArray([]);
+    this.tipsError = ko.observable();
+    this.photos = ko.observableArray([]);
+    this.photosError = ko.observable();
+};
+
 
 //----------------------------------- END OF MODEL ----------------------------------------------//
 
@@ -251,18 +293,18 @@ here are concerned with user input.
 PROPERTIES
 
 1. currentLocation:
-	TYPE: Observable <Location>
-	DESCRIPTION: stores the current location either from: A)initial load,
-	B) user input - using the change address form. This will most likely
-	be a home/property address of interest.
+    TYPE: Observable <Location>
+    DESCRIPTION: stores the current location either from: A)initial load,
+    B) user input - using the change address form. This will most likely
+    be a home/property address of interest.
 
 2. currentFacilityList:
-	TYPE: Observable <FacilityCategory>
-	DESCRIPTION:
-	stores the current FacilityCategory object shown.
-	These are the categories the user sees in html select element, at index.html.
-	The dacilities shown in the list-group will change depending on the value
-	of currentFacilityList.
+    TYPE: Observable <FacilityCategory>
+    DESCRIPTION:
+    stores the current FacilityCategory object shown.
+    These are the categories the user sees in html select element, at index.html.
+    The dacilities shown in the list-group will change depending on the value
+    of currentFacilityList.
 
 3. address:
    TYPE: Observable <String>
@@ -300,12 +342,18 @@ PROPERTIES
 
 var ViewModel = function() {
     var self = this; // described above
+    this.mapError = ko.observable(false);
     this.currentLocation = ko.observable(); // described above
     this.currentFacilityList = ko.observable(); // described above
     this.address = ko.observable(); // described above
     this.city = ko.observable(); // described above
     this.state = ko.observable(); // described above
+    this.currentPlace = ko.observable();
     this.locationMarker = null; // described above
+
+    this.visibleMenu = ko.observable(true);
+
+    this.dataLoaded = ko.observable(true);
 
 
     // described above
@@ -395,7 +443,7 @@ var ViewModel = function() {
     it will change the map accordingly. Otherwise, it will notify the user.
     *****************************************************************************/
     this.newLocation = function() {
-
+        this.infowindow.loaded = false;
         var addressline = this.address() + ", " + this.city() + ", " + this.state();
 
 
@@ -500,20 +548,20 @@ var ViewModel = function() {
 
 
     /****************************************************************************
-	METHOD: facilitiesCallback
-	PARAMETERS: 2 - FacilityCategory, FacilityCategory
-	RETURNS: NOTHING
-	DESCRIPTION:
-	callback function used in google's nearbySearch service. If places are found
-	by such, it will create a new Facility object with it's data and add it the
-	current FacilityCategory's facilities array.
+    METHOD: facilitiesCallback
+    PARAMETERS: 2 - FacilityCategory, FacilityCategory
+    RETURNS: NOTHING
+    DESCRIPTION:
+    callback function used in google's nearbySearch service. If places are found
+    by such, it will create a new Facility object with it's data and add it the
+    current FacilityCategory's facilities array.
 
-	NOTE:
-	We also have an 'all' category, which will contain all the facilities(Places),
-	stored in all the other FacilityCategory objects. This will allow us to have
-	an unfiltered FacilityCategory in order for our users to see all the places
-	unfiltered.
-	*****************************************************************************/
+    NOTE:
+    We also have an 'all' category, which will contain all the facilities(Places),
+    stored in all the other FacilityCategory objects. This will allow us to have
+    an unfiltered FacilityCategory in order for our users to see all the places
+    unfiltered.
+    *****************************************************************************/
     this.facilitiesCallback = function(current, all) {
 
         return function(results, status) {
@@ -523,8 +571,7 @@ var ViewModel = function() {
                     current.facilities.push(facility);
                     all.facilities.push(facility);
                 }
-
-                //EXPAND/CONTRACT BOUNDS TO FIT ALL OUR LOCATION
+                //EXPAND/CONTRACT BOUNDS TO FIT ALL OUR LOCATIONS
                 self.map.fitBounds(self.bounds);
             }
         };
@@ -550,8 +597,11 @@ var ViewModel = function() {
             icon: this.getIconData(place),
             title: place.name,
             position: location,
-            id: place.place_id
+            id: place.place_id,
+            facilityDetails: new FacilityDetails()
         });
+
+
 
         google.maps.event.addListener(marker, 'click', function() {
             self.goToFacility(marker);
@@ -585,6 +635,10 @@ var ViewModel = function() {
     *****************************************************************************/
     this.goToFacility = function(context) {
 
+        //this.currentFacility(new Facility(context));
+
+        //console.log(this.currentFacility());
+
         if (window.innerWidth < 961) {
             $("#side_menu").hide();
         }
@@ -593,10 +647,15 @@ var ViewModel = function() {
             context = context.marker;
 
 
+        //this.currentPlace(marker);
         self.map.setCenter(context.position);
         self.map.setZoom(15);
         context.setAnimation(google.maps.Animation.DROP);
         self.createFacilityInfoWindow(context);
+        self.currentPlace(context.facilityDetails);
+        self.getDetailsData(context.facilityDetails, context.id);
+        self.getDistance(context.position);
+        self.getVenueId(context.facilityDetails, context.title, context.position.lat(), context.position.lng());
 
     };
 
@@ -641,22 +700,17 @@ var ViewModel = function() {
     and opens it.
     *****************************************************************************/
     this.createFacilityInfoWindow = function(context) {
-        this.infowindow.setContent('<div class="info_window_container">' +
-            '<nav>' +
-            '<ul class="nav nav-tabs">' +
-            '<li><a href="#" onclick="vmodel.getDetailsData(\'' + context.id + '\');">details</a></li>' + '<li><a href="#" onclick="vmodel.getOpeningHours();">opening hours</li>' +
-            '<li><a href="#" onclick="vmodel.getFoursquareTips();">reviews</a></li>' +
-            '<li><a href="#"onclick="vmodel.getFoursquarePhotos();">photos</a></li>' +
-            '</ul>' +
-            "</nav>" +
-            '<div id="info_window_body">' +
-            '<p>Fetching some cool stuff...</p>' +
-            '<img src="img/110.gif">' +
-            '</div>' +
-            '</div>');
+        this.infowindow.setContent('');
+        this.infowindow.setContent('<div class="info_window_container" id="facility_window" data-bind="template: {name: \'facility_info_window\'}"></div>');
+        var loaded = false;
+         google.maps.event.addListener(this.infowindow, 'domready', function () {
 
+                        if (!loaded) {
+                            ko.applyBindings(self, $("#facility_window")[0]);
+                            loaded = true;
+                        }
+                  });
 
-        this.getDetailsData(context.id);
         this.infowindow.open(context.map, context);
 
 
@@ -672,48 +726,38 @@ var ViewModel = function() {
     Once it retrieves the results, changes the content of the info_window_body
     container with data relevant to the associated place/Facility.
     *****************************************************************************/
-    this.getDetailsData = function(id) {
+    this.getDetailsData = function(facilityDetails, id) {
+        this.dataLoaded(false);
 
+        facilityDetails.image('img/spinner.gif');
         this.service.getDetails({
             placeId: id
         }, function(place, status) {
+
             if (status === google.maps.places.PlacesServiceStatus.OK) {
-                self.showDistance(place.geometry.location);
-                self.getVenueId(place.name, place.geometry.location.lat(), place.geometry.location.lng());
-                var container = document.getElementById('info_window_body');
-                var content = {
-                    heading: '<h4>' + place.name + '</h4>',
-                    phone: place.formatted_phone_number ? "<p><strong>Phone</strong>: " + place.formatted_phone_number + "</p>" : "<p>No phone information available</p>",
-                    photo: place.photos ? "<img src='" + place.photos[0].getUrl({
-                        'maxWidth': 150,
-                        'maxHeight': 150
-                    }) + "' width='150px' height='150px'alt='location_image'>" : "<img src='img/noimage.jpg' alt='location_image'>",
-                    address: place.formatted_address ? "<p><em>" + place.formatted_address + "</em></p>" : '<p><em>Sorry, no address available for this place</em></p>',
-                    ratings: place.reviews ? "<p><strong>user rating</strong>: <span class='label label-info'>" + place.rating + "</label></p>" : "<p>user rating: <span class='label label-info'>No reviews av.</label></p>",
-                    website: place.website ? "<a href='" + place.website + "'>go to website</a>" : "<span>No website available</span>",
-                    open_now: place.opening_hours ? (place.opening_hours.open_now ? "<p>Open now: <span style='color: green;'>open</span></p>" : "<p>Open now: <span style='color: red;'>closed</span></p>") : "<p>Open now: Data not available</p>"
-                };
+                self.dataLoaded(true);
 
-                container.innerHTML = content.heading +
-                    content.address +
-                    '<div id="infowindow_card">' +
-                    '<div id="infowindow_photo">' + content.photo + '</div>' +
-                    '<div id="infowindow_address">' +
-                    content.phone + content.ratings +
-                    '<p>' + content.website + '</p>' +
-                    '<p><strong>Distance</strong>: <span id="destination_distance"></span></p>' +
-                    content.open_now +
-                    '</div>' +
-                    '</div>';
+                facilityDetails.name(place.name);
+                facilityDetails.phone(place.formatted_phone_number);
 
-                //self.test(content.address);
-                self.infowindow.heading = content.heading;
+                if(place.photos)
+                    facilityDetails.image(place.photos[0].getUrl({'maxWidth': 150, 'maxHeight':150}));
+                else
+                    facilityDetails.image('img/noimage.jpg');
 
-                //STORES THE opening_hours property for later use.
-                if (place.opening_hours) {
-                    self.infowindow.opening_hours = place.opening_hours;
+                facilityDetails.address(place.formatted_address);
+
+                if(place.rating)
+                    facilityDetails.rating(place.rating);
+
+                if(place.opening_hours){
+                    facilityDetails.open_now(place.opening_hours.open_now);
+                    facilityDetails.opening_hours([]);
+                    for(var i=0; i < place.opening_hours.weekday_text.length; i++){
+                        var current = place.opening_hours.weekday_text[i];
+                        facilityDetails.opening_hours.push(current);
+                    }
                 }
-
             }
         });
     };
@@ -729,20 +773,20 @@ var ViewModel = function() {
     *****************************************************************************/
     this.createLocationInfoWindow = function() {
         this.infowindow.setContent('');
-        self.infowindow.setContent("<div class='info_window_container'>" +
-            "<nav>" +
-            "<ul class='nav nav-tabs'>" +
-            "<li><a href='#' onclick='vmodel.getStreetView();'>street view</a></li>" +
-            "<li><a href='#' onclick='vmodel.getZestimate();'>details</a></li>" +
-            "</ul>" +
-            "</nav>" +
-            "<div id='streetview_container'>" +
-            "<p>Fetching some cool stuff...</p>" +
-            "<img src='img/110.gif'>" +
-            "</div>" +
-            "</div>");
-        this.getStreetView();
+        this.infowindow.setContent('<div class="info_window_container" id="property_window" data-bind="template: {name: \'property_info_window\'}"></div>');
+        var loaded = false;
+                google.maps.event.addListener(this.infowindow, 'domready', function () {
+                        if (!loaded) {
+                            ko.applyBindings(self, $("#property_window")[0]);
+                            loaded = true;
+                            self.streetview_container = document.getElementById('streetview_container');
+                        }
+
+                  });
+        self.getStreetView();
         this.infowindow.open(this.map, this.locationMarker);
+
+
     };
 
 
@@ -775,7 +819,7 @@ var ViewModel = function() {
             var heading = google.maps.geometry.spherical.computeHeading(
                 closestLocation, self.locationMarker.position
             );
-            var panoramaView = new google.maps.StreetViewPanorama(document.getElementById('streetview_container'), {
+            var panoramaView = new google.maps.StreetViewPanorama(self.streetview_container, {
                 position: closestLocation,
                 pov: {
                     heading: heading,
@@ -823,7 +867,7 @@ var ViewModel = function() {
 
 
     /****************************************************************************
-    METHOD: showDistance
+    METHOD: getDistance
     PARAMETERS: 1- place.geometry.location
     RETURNS: NOTHING
     DESCRIPTION:
@@ -832,7 +876,7 @@ var ViewModel = function() {
     destination parameter, which in this case is the facility's info window we are
     viewing.
     *****************************************************************************/
-    this.showDistance = function(dest) {
+    this.getDistance = function(dest) {
 
         var origin = this.currentLocation().latlong;
         var destination = [dest];
@@ -846,11 +890,8 @@ var ViewModel = function() {
             avoidTolls: false
         }, function(response, status) {
             if (status == 'OK') {
-                var distance_element = document.getElementById('destination_distance');
-                if (distance_element) {
-                    distance_element.innerHTML = response.rows[0].elements[0].distance.text;
-                }
 
+                self.currentPlace().distance(response.rows[0].elements[0].distance.text);
             }
 
         });
@@ -987,14 +1028,21 @@ var ViewModel = function() {
     Fetches the venue id required by foursquare and stores it in our infowindow.
 
     *****************************************************************************/
-    this.getVenueId = function(title, lat, long) {
+    this.getVenueId = function(facilityDetails, title, lat, long) {
+
         var venueIdUrl = "https://api.foursquare.com/v2/venues/search?v=20161016&ll=" +
             lat + "," + long + "&query=" + title + "&intent=match&client_id=G2CO0HDKUJAJMKRVLLSD2PAZ20MVMJJWRGAKUC3M4H20NJWV&client_secret=5NVLZB2BP2VFIHB1URO1AVRVECFLHYBPIGUKE0ISXU0AXEHB";
+
+            //console.log(venueIdUrl);
         $.ajax({
             url: venueIdUrl,
             success: function(data) {
-                self.infowindow.venue = (data.response.venues.length > 0) ? data.response.venues[0].id : false;
-
+                if(data.response.venues.length > 0){
+                    facilityDetails.venueId(data.response.venues[0].id);
+                }
+            },
+            error: function(data, error){
+                self.currentPlace().venueIdError("Fatal Error: unable to reach the foursquare web service URL -  unable to fetch venue id.");
             }
         });
     };
@@ -1008,34 +1056,26 @@ var ViewModel = function() {
     all relevant 'tips' posted by foursquare users and updates the infowindow DOM.
     *****************************************************************************/
     this.getFoursquareTips = function() {
-        var container = document.getElementById('info_window_body');
-        var content = '<p>Fetching some cool stuff...</p>' +
-            '<img src="img/110.gif">';
 
-        if (this.infowindow.venue) {
-            var venueTipsUrl = "https://api.foursquare.com/v2/venues/" + this.infowindow.venue + "/tips?v=20161016&client_id=G2CO0HDKUJAJMKRVLLSD2PAZ20MVMJJWRGAKUC3M4H20NJWV&client_secret=5NVLZB2BP2VFIHB1URO1AVRVECFLHYBPIGUKE0ISXU0AXEHB";
-
+         self.currentPlace().tips([]);
+        if(this.currentPlace().venueId()){
+            self.dataLoaded(false);
             $.ajax({
-                url: venueTipsUrl,
-                success: function(data) {
-                    var tips = data.response.tips.items;
-                    content = self.infowindow.heading;
-                    content += "<img src='img/foursquare.png'>";
-                    if (tips.length > 0) {
+                url: "https://api.foursquare.com/v2/venues/" + this.currentPlace().venueId() + "/tips?v=20161016&client_id=G2CO0HDKUJAJMKRVLLSD2PAZ20MVMJJWRGAKUC3M4H20NJWV&client_secret=5NVLZB2BP2VFIHB1URO1AVRVECFLHYBPIGUKE0ISXU0AXEHB",
+                success: function(data){
 
-                        for (var i = 0; i < tips.length; i++) {
-                            content += "<div class='well'>" + tips[i].text + " -- <em>" + tips[i].user.firstName + "</em></div>";
-                        }
-                    } else {
-                        content += "No reviews found.";
+                    var tips = data.response.tips.items;
+                    for(var i=0 ; i<tips.length; i++){
+                        self.currentPlace().tips.push(tips[i]);
                     }
-                    container.innerHTML = content;
+
+                    self.dataLoaded(true);
+                },
+                error: function(data, error){
+                    console.log('here');
+                    self.currentPlace().tipsError("Fatal Error: unable to reach the foursquare web service URL -  unable to fetch venue tips.");
                 }
             });
-
-        } else {
-            content = self.infowindow.heading + "No foursquare data available";
-            container.innerHTML = content;
         }
 
     };
@@ -1050,52 +1090,34 @@ var ViewModel = function() {
     vanue_id, and updates the DOM with the images.
     *****************************************************************************/
     this.getFoursquarePhotos = function() {
-        var container = document.getElementById('info_window_body');
-        var content = this.infowindow.heading;
 
+        if(this.currentPlace().venueId()){
+             self.dataLoaded(false);
+            var venuePhotosUrl = "https://api.foursquare.com/v2/venues/" + this.currentPlace().venueId() + "/photos?v=20161016&client_id=G2CO0HDKUJAJMKRVLLSD2PAZ20MVMJJWRGAKUC3M4H20NJWV&client_secret=5NVLZB2BP2VFIHB1URO1AVRVECFLHYBPIGUKE0ISXU0AXEHB";
 
-        if (this.infowindow.venue) {
-            var venuePhotosUrl = "https://api.foursquare.com/v2/venues/" + this.infowindow.venue + "/photos?v=20161016&client_id=G2CO0HDKUJAJMKRVLLSD2PAZ20MVMJJWRGAKUC3M4H20NJWV&client_secret=5NVLZB2BP2VFIHB1URO1AVRVECFLHYBPIGUKE0ISXU0AXEHB";
             $.ajax({
                 url: venuePhotosUrl,
-                success: function(data) {
-                    var photos = data.response.photos.items;
+                success: function(data){
+                    self.currentPlace().photos([]);
+                     var photos = data.response.photos.items;
 
-                    if (photos.length > 0) {
-                        content += "<p><img src='img/foursquare.png'></p>";
-                        content += '<div class="container" id="carousel-container">';
-                        content += '<div id="infowindow_carousel" class="carousel slide">';
-                        content += '<div class="carousel-inner">';
-                        for (var i = 0; i < photos.length; i++) {
-                            if (i === 0) {
-                                content += '<div class="item active">';
-                            } else {
-                                content += '<div class="item">';
-                            }
-                            content += '<img class="thumbnail" src="' + photos[i].prefix + '300x300' + photos[i].suffix + '">';
-                            content += '</div>';
+
+                        for(var i=0 ; i<photos.length; i++){
+                            var src = photos[i].prefix + '300x300' + photos[i].suffix;
+                             self.currentPlace().photos.push(src);
                         }
-                        content += '</div>';
-                        content += '<a class="left carousel-control" href="#infowindow_carousel" data-slide="prev">' +
-                            '<span class="glyphicon glyphicon-chevron-left"></span>' +
-                            '</a>';
-                        content += '<a class="right carousel-control" href="#infowindow_carousel" data-slide="next">' +
-                            '<span class="glyphicon glyphicon-chevron-right"></span>' +
-                            '</a>';
-                        content += '</div>';
-                        content += '</div>';
-                    } else {
-                        content += "No photos found.";
-                    }
 
-                    container.innerHTML = content;
+
+                        self.dataLoaded(true);
+
+                },
+                error: function(){
+                    self.currentPlace().photosError("Fatal Error: unable to reach the foursquare web service URL -  unable to fetch venue photos.");
+                    self.dataLoaded(true);
                 }
             });
-
-        } else {
-            content += "No foursquare photos available";
-            container.innerHTML = content;
         }
+
     };
 
 
@@ -1121,9 +1143,12 @@ var ViewModel = function() {
                 if (data == 1) {
                     alert('No Zillow id found for this property. Please verify your address');
                 } else {
-                    self.currentLocation().zpid = data;
+                    self.currentLocation().zpid(data);
                 }
 
+            },
+            error: function(data, error){
+                self.currentLocation().zpidError("unable to reach the proxy webservice: unable to fetch zillow pid.");
             }
         });
     };
@@ -1138,19 +1163,20 @@ var ViewModel = function() {
     and value changes.
     *****************************************************************************/
     this.getZestimate = function() {
-        if (this.currentLocation().zpid) {
+        if (this.currentLocation().zpid()) {
             $.ajax({
                 url: 'http://www.felipeboyd.com/webservices/zillow-zestimate-service.php',
                 data: {
-                    "zpid": this.currentLocation().zpid
+                    "zpid": this.currentLocation().zpid()
                 },
                 success: function(data, status) {
                     self.parseZillowData(data);
-                    self.renderZillowData();
+                    //self.renderZillowData();
+                },
+                error: function(data, error){
+                    self.currentLocation().zestimateError("unable to reach the proxy webservice: unable to fetch zillow zEstimate.");
                 }
             });
-        } else {
-            document.getElementById("streetview_container").innerHTML = "<p>Sorry, Zillow information is not available for this address. Make sure this property is available on zillow</p>";
         }
     };
 
@@ -1166,40 +1192,28 @@ var ViewModel = function() {
         var xmlDoc = $.parseXML(data);
         var xml = $(xmlDoc);
         var zestimate = xml.find('zestimate');
-        this.currentLocation().z_dollar_amount = zestimate.find('amount').text();
-        this.currentLocation().z_last_updated = zestimate.find('last-updated').text();
-        this.currentLocation().z_value_change = zestimate.find('valueChange').text();
-        this.currentLocation().z_value_low = zestimate.find('low').text();
-        this.currentLocation().z_value_high = zestimate.find('high').text();
-        this.currentLocation().z_value_duration = zestimate.find('valueChange').attr("duration");
+        this.currentLocation().amount(zestimate.find('amount').text());
+        this.currentLocation().last_updated(zestimate.find('last-updated').text());
+        this.currentLocation().value_change(zestimate.find('valueChange').text());
+        this.currentLocation().value_high(zestimate.find('high').text());
+        this.currentLocation().value_low(zestimate.find('low').text());
+        this.currentLocation().value_duration(zestimate.find('valueChange').attr("duration"));
+
+
 
 
 
     };
 
-    /****************************************************************************
-    METHOD: renderZillowData
-    PARAMETERS: NONE
-    RETURNS: NOTHING
-    DESCRIPTION:
-    Update our infowindow DOM with our newly generated content from zillow.
-    *****************************************************************************/
-    this.renderZillowData = function() {
-        var container = document.getElementById("streetview_container");
-        container.removeAttribute("jstcache");
-        container.removeAttribute("style");
-        container.innerHTML = '<h4>Zillow Data</h4>' +
-            '<ul class="list_group">' +
-            '<li class="list-group-item"><b>Amount(USD):</b> ' + this.currentLocation().z_dollar_amount + '</li>' +
-            '<li class="list-group-item"><b>Last Price Update:</b> ' + this.currentLocation().z_last_updated + '</li>' +
-            '<li class="list-group-item"><b>Change in Value:</b> ' + this.currentLocation().z_value_change + ' (' + this.currentLocation().z_value_duration + ' days)</li>' +
-            '<li class="list-group-item"><b>High:</b> ' + this.currentLocation().z_value_high + '</li>' +
-            '<li class="list-group-item"><b>Low:</b> ' + this.currentLocation().z_value_low + '</li>' +
-            '</ul>' +
-            '<p>Data fetched from www.zellow.com</p>';
+
+    this.onMapError = function(){
+        this.mapError(true);
     };
 
 
+    this.toggleMenu = function(){
+        this.visibleMenu(!this.visibleMenu());
+    };
 
 
 };
@@ -1265,6 +1279,8 @@ function loadMap() {
 
 
 
+
+
 //create our global scoped view model instance.
 vmodel = new ViewModel();
 
@@ -1276,8 +1292,3 @@ vmodel.init();
 ko.applyBindings(vmodel);
 
 
-
-//used for the hamburger iconm in order to hide/show the side menu.
-$('#hamburger').click(function() {
-    $("#side_menu").slideToggle();
-});
