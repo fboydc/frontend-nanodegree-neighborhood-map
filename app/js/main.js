@@ -311,48 +311,86 @@ name of the place as specified in the PlaceResult object, returned by the google
 places api.
 
 PROPERTY: phone
-Type: String
+Type: ko.observable <String>
 Description:
 The Place's phone number, formatted according to the number's regional convention.
 As returned by the placesResult object from Google's getDetails Method (Google Maps Javascript API)
 
 PROPERTY: image
-Type: String
+Type: ko.observable <String>
 Description:
 First indexed item as returned in the Photos of this  Array<PlacePhoto> contained in the placesResult object.
 
 PROPERTY: address
-Type: String
+Type: ko.observable <String>
 Description:
 The Place's formatted address, as return in the placesResult object.
 
 PROPERTY: rating
-Type: number
+Type: ko.observable <String>
 Description:
 A rating, between 1.0 to 5.0, based on user reviews of this Place, as return by the placesResult object.
 
 PROPERTY: distance
-Type: String
+Type: ko.observable <String>
 Description:
 The distance in km as calculate by the distance matrix service of the google maps api.
 This is the distance from currentLocation to currentPlace object as contained in the view model.
 
 PROPERTY: website
-Type: String
+Type: ko.observable <String>
 Description:
 The website for currentPlace object as contained in the view model, returned by the placesResult object.
 
 PROPERTY: open_now
-Type: boolean
+Type: ko.observable <boolean>
 Description:
 the value for the open_now property of the placeResult object as returned by the Google Maps API.
 
 PROPERTY: opening_hours
-Type: String
+Type: ko.observableArray<String>
 Description:
+A place opening hours as returned by the placeResults object of the Google Maps API. Each index in the 
+containing array represents a day of the week (mon. - fri.).
 
 
+PROPERTY: venuedId
+Type: ko.observable <String>
+Description:
+The venueID as returned by the places search in the Foursquare places API. Such id is used for
+fetching further information about a venue, such as: restaurants, bars, museums, etc.
 
+PROPERTY: venueIdError
+Type: ko.observable <String>
+Description:
+used by the getVenueId function. If undefined content will show normally; if assigned a string, a message will show in place
+of the infowindow's reviews and photos sections, displaying a message to the user.
+
+PROPERTY: tips
+Type: ko.observableArray <tips>
+Description:
+Contains the tips object as returned by the Foursquare places API. Please see 
+https://developer.foursquare.com/docs/api/venues/tips for more information.
+
+
+PROPERTY: tipsError
+Type: ko.observableArray<string>
+Description:
+used by the getFoursquareTips function. If undefined content will show normally; if assigned a string, a message will show in place
+of the infowindow's reviews section, displaying a message to the user.
+
+
+PROPERTY: photos
+Type: ko.observable<photos>
+Description:
+contains the photos object as returned by the Foursquare places API. Please see
+https://developer.foursquare.com/docs/api/venues/photos for more information.
+
+PROPERTY: photosError
+Type: ko.observable<String>
+Description:
+used by the getFoursquarePhotos function. If undefined content will show normally; if assigned a string, a message will show in place
+of the infowindow's photos section, displaying a message to the user.
 
 *****************************************************************************************************/
 var FacilityDetails = function(){
